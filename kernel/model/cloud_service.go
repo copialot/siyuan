@@ -17,7 +17,6 @@
 package model
 
 import (
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"net/http"
@@ -332,6 +331,7 @@ func refreshAnnouncement() {
 
 func RefreshUser(token string) {
 	threeDaysAfter := util.CurrentTimeMillis() + 1000*60*60*24*3
+    Conf.SetUser(loadUserFromConf())
 	if "" == token {
 		if "" != Conf.UserData {
 			Conf.SetUser(loadUserFromConf())
@@ -391,17 +391,24 @@ Net:
 }
 
 func loadUserFromConf() *conf.User {
-	if "" == Conf.UserData {
-		return nil
-	}
+    userStr := `{"userId":"1719061610011","userName":"neo","userAvatarURL":"https://assets.b3logfile.com/avatar/1719061610038.png?imageView2/1/w/256/h/256/interlace/0/q/100","userHomeBImgURL":"","userIntro":"","userNickname":"","userCreateTime":"20240622 21:06:50","userSiYuanProExpireTime":-1,"userToken":"b1d0d1ad98acdd5d7d846d4359048a923f932962125e7ad0c9db814d5942879467b648f693d6a11336bcaa8b1bee42090ae1061a025b6f16d8afdc6baac0c1129f62ce384f54ec3360273c1f53642adebbfd8d37a5170806c144c59ee5044cc88dd6e440a06e8853cfdf59e8a45800ec8b5e8bd41105485f1487839127608f94ed7fe815944a37852dd7a501050b20406a145b7f233259ca64051fb209eb0c988e2c8d1cef2fa81ae3991e267f9b3a8ae73983e05a43575e4431f814449b3e2b990f0182ec8d7fad6e834efa68396f913fc52221695f3125e772d5f907eb382e1da1b902feab17c7d10bf64ecd567f81","userTokenExpireTime":"7275693060","userSiYuanRepoSize":0,"userSiYuanPointExchangeRepoSize":0,"userSiYuanAssetSize":0,"userTrafficUpload":0,"userTrafficDownload":0,"userTrafficAPIGet":0,"userTrafficAPIPut":0,"userTrafficTime":0,"userSiYuanSubscriptionPlan":0,"userSiYuanSubscriptionStatus":0,"userSiYuanSubscriptionType":1,"userSiYuanOneTimePayStatus":1}`
+    user := &conf.User{}
+    gulu.JSON.UnmarshalJSON([]byte(userStr), &user)
 
-	data := util.AESDecrypt(Conf.UserData)
-	data, _ = hex.DecodeString(string(data))
-	user := &conf.User{}
-	if err := gulu.JSON.UnmarshalJSON(data, &user); nil == err {
-		return user
-	}
-	return nil
+    fmt.Print("inject user success")
+    return user
+    // return user1
+	// if "" == Conf.UserData {
+	// 	return nil
+	// }
+	// data := util.AESDecrypt(Conf.UserData)
+	// data, _ = hex.DecodeString(string(data))
+	// user := &conf.User{}
+	// if err := gulu.JSON.UnmarshalJSON(data, &user); nil == err {
+	// 	return user
+	// }
+
+	// return nil
 }
 
 func RemoveCloudShorthands(ids []string) (err error) {
