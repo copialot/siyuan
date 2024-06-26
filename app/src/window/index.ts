@@ -54,6 +54,14 @@ class App {
                             case "reloadPlugin":
                                 reloadPlugin(this, data.data);
                                 break;
+                            case "reloadEmojiConf":
+                                fetchPost("/api/system/getEmojiConf", {}, response => {
+                                    window.siyuan.emojis = response.data as IEmoji[];
+                                });
+                                break;
+                            case "reloaddoc":
+                                reloadSync(this, {upsertRootIDs: [data.data], removeRootIDs: []}, false, false);
+                                break;
                             case "syncMergeResult":
                                 reloadSync(this, data.data);
                                 break;
