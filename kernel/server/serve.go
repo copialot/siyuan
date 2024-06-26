@@ -145,7 +145,7 @@ func Serve(fastMode bool) {
 }
 
 func rewritePortJSON(pid, port string) {
-	portJSON := filepath.Join(util.HomeDir, ".config", "siyuan", "port.json")
+	portJSON := filepath.Join(util.HomeDir, ".config", "note", "port.json")
 	pidPorts := map[string]string{}
 	var data []byte
 	var err error

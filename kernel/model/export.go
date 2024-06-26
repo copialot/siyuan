@@ -21,7 +21,6 @@ import (
 	"encoding/csv"
 	"errors"
 	"fmt"
-	"github.com/88250/pdfcpu/pkg/font"
 	"net/http"
 	"net/url"
 	"os"
@@ -33,6 +32,8 @@ import (
 	"strings"
 	"time"
 	"unicode/utf8"
+
+	"github.com/88250/pdfcpu/pkg/font"
 
 	"github.com/88250/gulu"
 	"github.com/88250/lute/ast"
@@ -328,7 +329,7 @@ func ExportSystemLog() (zipPath string) {
 		return
 	}
 
-	appLog := filepath.Join(util.HomeDir, ".config", "siyuan", "app.log")
+	appLog := filepath.Join(util.HomeDir, ".config", "note", "app.log")
 	if gulu.File.IsExist(appLog) {
 		to := filepath.Join(exportFolder, "app.log")
 		if err := filelock.Copy(appLog, to); nil != err {
@@ -336,7 +337,7 @@ func ExportSystemLog() (zipPath string) {
 		}
 	}
 
-	kernelLog := filepath.Join(util.HomeDir, ".config", "siyuan", "kernel.log")
+	kernelLog := filepath.Join(util.HomeDir, ".config", "note", "kernel.log")
 	if gulu.File.IsExist(kernelLog) {
 		to := filepath.Join(exportFolder, "kernel.log")
 		if err := filelock.Copy(kernelLog, to); nil != err {
@@ -977,7 +978,7 @@ func ProcessPDF(id, p string, merge, removeAssets, watermark bool) (err error) {
 	})
 
 	pdfcpu.ConfigPath = "disable"
-	font.UserFontDir = filepath.Join(util.HomeDir, ".config", "siyuan", "fonts")
+	font.UserFontDir = filepath.Join(util.HomeDir, ".config", "note", "fonts")
 	if mkdirErr := os.MkdirAll(font.UserFontDir, 0755); nil != mkdirErr {
 		logging.LogErrorf("mkdir [%s] failed: %s", font.UserFontDir, mkdirErr)
 		return

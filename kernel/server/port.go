@@ -59,7 +59,7 @@ func killRunningKernel() {
 	}
 
 	if killed {
-		portJSON := filepath.Join(util.HomeDir, ".config", "siyuan", "port.json")
+		portJSON := filepath.Join(util.HomeDir, ".config", "note", "port.json")
 		os.RemoveAll(portJSON)
 	}
 }
@@ -69,7 +69,7 @@ func killByPort(port string) {
 		return
 	}
 
-	portJSON := filepath.Join(util.HomeDir, ".config", "siyuan", "port.json")
+	portJSON := filepath.Join(util.HomeDir, ".config", "note", "port.json")
 	os.RemoveAll(portJSON)
 
 	pid := pidByPort(port)

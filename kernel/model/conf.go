@@ -896,7 +896,7 @@ func GetMaskedConf() (ret *AppConf, err error) {
 
 func clearPortJSON() {
 	pid := fmt.Sprintf("%d", os.Getpid())
-	portJSON := filepath.Join(util.HomeDir, ".config", "siyuan", "port.json")
+	portJSON := filepath.Join(util.HomeDir, ".config", "note", "port.json")
 	pidPorts := map[string]string{}
 	var data []byte
 	var err error

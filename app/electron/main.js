@@ -38,7 +38,7 @@ process.noAsar = true;
 const appDir = path.dirname(app.getAppPath());
 const isDevEnv = process.env.NODE_ENV === "development";
 const appVer = app.getVersion();
-const confDir = path.join(app.getPath("home"), ".config", "siyuan");
+const confDir = path.join(app.getPath("home"), ".config", "note");
 const windowStatePath = path.join(confDir, "windowState.json");
 let bootWindow;
 let firstOpen = false;
