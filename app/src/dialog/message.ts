@@ -1,5 +1,6 @@
 import {genUUID} from "../util/genID";
 import {Constants} from "../constants";
+import { Toast } from 'electron-toaster';
 
 export const initMessage = () => {
     const messageElement = document.getElementById("message");
@@ -38,7 +39,16 @@ export const initMessage = () => {
 export const showMessage = (message: string, timeout = 6000, type = "info", messageId?: string) => {
     const messagesElement = document.getElementById("message").firstElementChild;
     if (!messagesElement) {
-        alert(message);
+        var toaster = new Toast({
+            displayTime: 5000, // 显示时间，单位毫秒
+            width: 300,
+            height: 100,
+          });
+          toaster.notify({
+            title: "提示",
+            message: message,
+          });
+        // alert(message);
         return ;
     }
     const id = messageId || genUUID();
