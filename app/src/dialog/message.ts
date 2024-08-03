@@ -38,7 +38,13 @@ export const initMessage = () => {
 export const showMessage = (message: string, timeout = 6000, type = "info", messageId?: string) => {
     const messagesElement = document.getElementById("message").firstElementChild;
     if (!messagesElement) {
-        alert(message);
+        // alert(message);
+        // const [api, contextHolder] = notification.useNotification();
+        // api.info({
+        //     message: "笔记通知",
+        //     description: message,
+        //   });
+        new window.Notification("笔记通知", { body: message })
         return ;
     }
     const id = messageId || genUUID();

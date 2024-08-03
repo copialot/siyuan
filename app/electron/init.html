@@ -310,7 +310,7 @@
     let currentLang = decodeURIComponent(getSearch('lang'))
     const setLang = (lang) => {
         if (isChinese(lang)) {
-            document.title = `思源笔记 v${getSearch('v')}`
+            document.title = `笔记 v${getSearch('v')}`
             document.getElementById('zhCN').classList.remove('fn__none')
             document.getElementById('enUS').classList.add('fn__none')
         } else {

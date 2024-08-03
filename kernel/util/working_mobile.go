@@ -42,7 +42,7 @@ func BootMobile(container, appDir, workspaceBaseDir, lang string) {
 
 	WorkingDir = filepath.Join(appDir, "app")
 	HomeDir = filepath.Join(workspaceBaseDir, "home")
-	userHomeConfDir := filepath.Join(HomeDir, ".config", "siyuan")
+	userHomeConfDir := filepath.Join(HomeDir, ".config", "note")
 	logging.SetLogPath(filepath.Join(userHomeConfDir, "kernel.log"))
 
 	if !gulu.File.IsExist(userHomeConfDir) {
@@ -109,7 +109,7 @@ func initWorkspaceDirMobile(workspaceBaseDir string) {
 		}
 	}
 
-	userHomeConfDir := filepath.Join(HomeDir, ".config", "siyuan")
+	userHomeConfDir := filepath.Join(HomeDir, ".config", "note")
 	workspaceConf := filepath.Join(userHomeConfDir, "workspace.json")
 	defaultWorkspaceDir := filepath.Join(workspaceBaseDir, "siyuan")
 

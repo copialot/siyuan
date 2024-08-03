@@ -64,7 +64,7 @@
     </div>
     <div class="b3-menu__items"></div>
 </div>
-<div id="message" class="b3-snackbars"></div>
+<div id="message" class="b3-snackbars"><span></span></div>
 <div id="status" class="status"></div>
 <div id="keyboardToolbar" class="keyboard fn__none"></div>
 <div class="side-mask fn__none"></div>

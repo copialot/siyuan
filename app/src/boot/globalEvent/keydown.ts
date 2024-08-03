@@ -72,6 +72,7 @@ import {setReadOnly} from "../../config/util/setReadOnly";
 import {copyPNGByLink} from "../../menus/util";
 import {globalCommand} from "./command/global";
 import {duplicateCompletely} from "../../protyle/render/av/action";
+import { showMessage } from "../../dialog/message";
 
 const switchDialogEvent = (app: App, event: MouseEvent) => {
     event.preventDefault();
@@ -1645,6 +1646,7 @@ export const windowKeyDown = (app: App, event: KeyboardEvent) => {
     }
     // https://github.com/siyuan-note/insider/issues/445
     if (matchHotKey("⌘S", event)) {
+        showMessage("保存成功")
         event.preventDefault();
         return true;
     }
