@@ -8,9 +8,6 @@ dependencies:
   '@electron/remote':
     specifier: ^2.1.2
     version: 2.1.2(electron@31.0.2)
-  electron-toaster:
-    specifier: ^2.0.4
-    version: 2.0.4
 
 devDependencies:
   '@types/node':
@@ -1715,10 +1712,6 @@ packages:
   /electron-to-chromium@1.4.812:
     resolution: {integrity: sha512-7L8fC2Ey/b6SePDFKR2zHAy4mbdp1/38Yk5TsARO66W3hC5KEaeKMMHoxwtuH+jcu2AYLSn9QX04i95t6Fl1Hg==}
     dev: true
-
-  /electron-toaster@2.0.4:
-    resolution: {integrity: sha512-nXUamOSzpsXVcMt/IJgOV+w+HdsxKpRjjnnT91Z02kBQpV1RYKvDyUMN3miHQqOLyWLhrvOsPWeJIBbwATJWzQ==}
-    dev: false
 
   /electron@31.0.2:
     resolution: {integrity: sha512-55efQ5yfLN+AQHcFC00AXQqtxC3iAGaxX2GQ3EDbFJ0ca9GHNOdSXkcrdBElLleiDrR2hpXNkQxN1bDn0oxe6w==}

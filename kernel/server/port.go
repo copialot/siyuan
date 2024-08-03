@@ -51,7 +51,7 @@ func killRunningKernel() {
 			continue
 		}
 		procName := strings.ToLower(process.Executable())
-		if strings.Contains(procName, "siyuan-kernel") {
+		if strings.Contains(procName, "note-kernel") {
 			kill(fmt.Sprintf("%d", process.Pid()))
 			killed = true
 		}
