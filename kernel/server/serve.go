@@ -145,7 +145,7 @@ func Serve(fastMode bool) {
 }
 
 func rewritePortJSON(pid, port string) {
-	portJSON := filepath.Join(util.HomeDir, ".config", "note", "port.json")
+	portJSON := filepath.Join(util.HomeDir, ".config", "siyuan", "port.json")
 	pidPorts := map[string]string{}
 	var data []byte
 	var err error
@@ -393,8 +393,18 @@ func serveAssets(ginServer *gin.Engine) {
 		relativePath := path.Join("assets", requestPath)
 		p, err := model.GetAssetAbsPath(relativePath)
 		if nil != err {
-			context.Status(http.StatusNotFound)
-			return
+			if strings.Contains(strings.TrimPrefix(requestPath, "/"), "/") {
+				// 再使用编码过的路径解析一次 https://github.com/siyuan-note/siyuan/issues/11823
+				dest := url.PathEscape(strings.TrimPrefix(requestPath, "/"))
+				dest = strings.ReplaceAll(dest, ":", "%3A")
+				relativePath = path.Join("assets", dest)
+				p, err = model.GetAssetAbsPath(relativePath)
+			}
+
+			if nil != err {
+				context.Status(http.StatusNotFound)
+				return
+			}
 		}
 		http.ServeFile(context.Writer, context.Request, p)
 		return

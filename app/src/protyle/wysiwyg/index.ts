@@ -3,8 +3,8 @@ import {
     hasClosestBlock,
     hasClosestByAttribute,
     hasClosestByClassName,
-    hasClosestByMatchTag, hasTopClosestByAttribute,
-    hasTopClosestByClassName,
+    hasClosestByMatchTag,
+    hasTopClosestByClassName, isInEmbedBlock,
 } from "../util/hasClosest";
 import {
     focusBlock,
@@ -23,7 +23,7 @@ import {
     contentMenu,
     enterBack,
     fileAnnotationRefMenu,
-    imgMenu,
+    imgMenu, inlineMathMenu,
     linkMenu,
     refMenu,
     setFold,
@@ -544,7 +544,7 @@ export class WYSIWYG {
             }
             // av cell select
             const avCellElement = hasClosestByClassName(target, "av__cell");
-            if (!protyle.disabled && avCellElement && avCellElement.dataset.id && !hasClosestByAttribute(avCellElement, "data-type", "NodeBlockQueryEmbed")) {
+            if (!protyle.disabled && avCellElement && avCellElement.dataset.id && !isInEmbedBlock(avCellElement)) {
                 const nodeElement = hasClosestBlock(avCellElement);
                 if (!nodeElement) {
                     return;
@@ -750,7 +750,7 @@ export class WYSIWYG {
             this.element.querySelectorAll("iframe").forEach(item => {
                 item.style.pointerEvents = "none";
             });
-            const needScroll = ["IMG", "VIDEO", "AUDIO"].includes(target.tagName) || target.classList.contains("img")
+            const needScroll = ["IMG", "VIDEO", "AUDIO"].includes(target.tagName) || target.classList.contains("img");
             documentSelf.onmousemove = (moveEvent: MouseEvent) => {
                 const moveTarget = moveEvent.target as HTMLElement;
                 // table cell select
@@ -929,7 +929,7 @@ export class WYSIWYG {
 
                 if (currentElement) {
                     // 从下往上划选遇到嵌入块时，选中整个嵌入块
-                    const embedElement = hasClosestByAttribute(currentElement, "data-type", "NodeBlockQueryEmbed");
+                    const embedElement = isInEmbedBlock(currentElement);
                     if (embedElement) {
                         currentElement = embedElement;
                     }
@@ -1328,7 +1328,7 @@ export class WYSIWYG {
                 return;
             }
             // https://github.com/siyuan-note/siyuan/issues/11793
-            const embedElement = hasTopClosestByAttribute(nodeElement.parentElement, "data-type", "NodeBlockQueryEmbed");
+            const embedElement = isInEmbedBlock(nodeElement);
             if (embedElement) {
                 nodeElement = embedElement;
             }
@@ -1549,7 +1549,7 @@ export class WYSIWYG {
                 return;
             }
             const target = event.detail.target || event.target as HTMLElement;
-            const embedElement = hasClosestByAttribute(target, "data-type", "NodeBlockQueryEmbed");
+            const embedElement = isInEmbedBlock(target);
             if (embedElement) {
                 if (getSelection().rangeCount === 0) {
                     focusSideBlock(embedElement);
@@ -1674,6 +1674,11 @@ export class WYSIWYG {
                     return false;
                 }
             }
+            const inlineMathElement = hasClosestByAttribute(target, "data-type", "inline-math");
+            if (inlineMathElement) {
+                inlineMathMenu(protyle, inlineMathElement);
+                return false;
+            }
             if (target.tagName === "IMG" && hasClosestByClassName(target, "img")) {
                 imgMenu(protyle, protyle.toolbar.range, target.parentElement.parentElement, {
                     clientX: x + 4,
@@ -1796,7 +1801,7 @@ export class WYSIWYG {
                 return;
             }
             if (nodeElement) {
-                const embedElement = hasClosestByAttribute(nodeElement, "data-type", "NodeBlockQueryEmbed");
+                const embedElement = isInEmbedBlock(nodeElement);
                 if (embedElement) {
                     protyle.gutter.render(protyle, embedElement, this.element);
                 } else {
@@ -2301,7 +2306,7 @@ export class WYSIWYG {
 
             const reloadElement = hasClosestByClassName(event.target, "protyle-action__reload");
             if (reloadElement) {
-                const embedReloadElement = hasClosestByAttribute(reloadElement, "data-type", "NodeBlockQueryEmbed");
+                const embedReloadElement = isInEmbedBlock(reloadElement);
                 if (embedReloadElement) {
                     embedReloadElement.removeAttribute("data-render");
                     blockRender(protyle, embedReloadElement);
@@ -2632,7 +2637,7 @@ export class WYSIWYG {
             if (ctrlIsPressed && range.toString() === "") {
                 let ctrlElement = hasClosestBlock(event.target);
                 if (ctrlElement) {
-                    const embedBlockElement = hasClosestByAttribute(ctrlElement, "data-type", "NodeBlockQueryEmbed");
+                    const embedBlockElement = isInEmbedBlock(ctrlElement);
                     if (embedBlockElement) {
                         ctrlElement = embedBlockElement;
                     }

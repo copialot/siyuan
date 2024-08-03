@@ -4,7 +4,7 @@ import {
     hasClosestByAttribute,
     hasClosestByClassName,
     hasClosestByTag,
-    hasTopClosestByAttribute
+    hasTopClosestByAttribute, isInEmbedBlock
 } from "./hasClosest";
 import {Constants} from "../../constants";
 import {paste} from "./paste";
@@ -829,8 +829,7 @@ export const dropEvent = (protyle: IProtyle, editorElement: HTMLElement) => {
                 });
                 if (window.siyuan.dragElement) {
                     window.siyuan.dragElement.querySelectorAll(queryClass.substring(0, queryClass.length - 1)).forEach(elementItem => {
-                        if (elementItem.getAttribute("data-type") === "NodeBlockQueryEmbed" ||
-                            !hasClosestByAttribute(elementItem, "data-type", "NodeBlockQueryEmbed")) {
+                        if (!isInEmbedBlock(elementItem)) {
                             sourceElements.push(elementItem);
                         }
                     });
@@ -838,8 +837,7 @@ export const dropEvent = (protyle: IProtyle, editorElement: HTMLElement) => {
                     const targetProtyleElement = document.createElement("template");
                     targetProtyleElement.innerHTML = `<div>${event.dataTransfer.getData(gutterType)}</div>`;
                     targetProtyleElement.content.querySelectorAll(queryClass.substring(0, queryClass.length - 1)).forEach(elementItem => {
-                        if (elementItem.getAttribute("data-type") === "NodeBlockQueryEmbed" ||
-                            !hasClosestByAttribute(elementItem, "data-type", "NodeBlockQueryEmbed")) {
+                        if (!isInEmbedBlock(elementItem)) {
                             sourceElements.push(elementItem);
                         }
                     });
@@ -988,6 +986,12 @@ export const dropEvent = (protyle: IProtyle, editorElement: HTMLElement) => {
                             dragSame(protyle, sourceElements, targetElement, targetClass.includes("dragover__bottom"), event.ctrlKey);
                         }
                     }
+
+                    // https://github.com/siyuan-note/siyuan/issues/10528#issuecomment-2205165824
+                    editorElement.querySelectorAll(".protyle-wysiwyg--empty").forEach(item => {
+                        item.classList.remove("protyle-wysiwyg--empty");
+                    });
+
                     // 超级块内嵌入块无面包屑，需重新渲染 https://github.com/siyuan-note/siyuan/issues/7574
                     sourceElements.forEach(item => {
                         if (item.getAttribute("data-type") === "NodeBlockQueryEmbed") {
@@ -1303,7 +1307,7 @@ export const dropEvent = (protyle: IProtyle, editorElement: HTMLElement) => {
             if (isSelf) {
                 return;
             }
-            if (hasClosestByAttribute(targetElement.parentElement, "data-type", "NodeBlockQueryEmbed")) {
+            if (isInEmbedBlock(targetElement)) {
                 // 不允许托入嵌入块
                 return;
             }

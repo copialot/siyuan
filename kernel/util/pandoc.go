@@ -70,6 +70,11 @@ func Pandoc(from, to, o, content string) (err error) {
 		return
 	}
 
+	if "" == PandocBinPath || ContainerStd != Container {
+		err = ErrPandocNotFound
+		return
+	}
+
 	dir := filepath.Join(WorkspaceDir, "temp", "convert", "pandoc", gulu.Rand.String(7))
 	if err = os.MkdirAll(dir, 0755); nil != err {
 		logging.LogErrorf("mkdir [%s] failed: [%s]", dir, err)

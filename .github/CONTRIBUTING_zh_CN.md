@@ -14,7 +14,7 @@
 
 设置 Electron 镜像环境变量并安装 Electron：
 
-* macOS/Linux: 
+* macOS/Linux:
  ```
  ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/ pnpm install electron@31.0.2 -D
  ```
