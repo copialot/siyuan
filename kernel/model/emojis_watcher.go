@@ -32,7 +32,7 @@ import (
 var emojisWatcher *fsnotify.Watcher
 
 func WatchEmojis() {
-	if util.ContainerAndroid == util.Container || util.ContainerIOS == util.Container {
+	if util.ContainerAndroid == util.Container || util.ContainerIOS == util.Container || util.ContainerHarmony == util.Container {
 		return
 	}
 
@@ -48,7 +48,7 @@ func watchEmojis() {
 	}
 
 	var err error
-	if emojisWatcher, err = fsnotify.NewWatcher(); nil != err {
+	if emojisWatcher, err = fsnotify.NewWatcher(); err != nil {
 		logging.LogErrorf("add emojis watcher for folder [%s] failed: %s", emojisDir, err)
 		return
 	}

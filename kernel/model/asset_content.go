@@ -63,6 +63,9 @@ func GetAssetContent(id, query string, queryMethod int) (ret *AssetContent) {
 			query = stringQuery(query)
 		}
 	}
+	if !ast.IsNodeIDPattern(id) {
+		return
+	}
 
 	table := "asset_contents_fts_case_insensitive"
 	filter := " id = '" + id + "'"
@@ -312,7 +315,7 @@ func IndexAssetContent(absPath string) {
 	}
 
 	info, err := os.Stat(absPath)
-	if nil != err {
+	if err != nil {
 		logging.LogErrorf("stat [%s] failed: %s", absPath, err)
 		return
 	}
@@ -384,13 +387,13 @@ func (searcher *AssetsSearcher) FullIndex() {
 	}
 
 	var results []*AssetParseResult
-	filelock.Walk(assetsDir, func(absPath string, info fs.FileInfo, err error) error {
-		if nil != err {
+	filelock.Walk(assetsDir, func(absPath string, d fs.DirEntry, err error) error {
+		if err != nil {
 			logging.LogErrorf("walk dir [%s] failed: %s", absPath, err)
 			return err
 		}
 
-		if info.IsDir() {
+		if d.IsDir() {
 			return nil
 		}
 
@@ -404,6 +407,12 @@ func (searcher *AssetsSearcher) FullIndex() {
 
 		result := parser.Parse(absPath)
 		if nil == result {
+			return nil
+		}
+
+		info, err := d.Info()
+		if err != nil {
+			logging.LogErrorf("stat file [%s] failed: %s", absPath, err)
 			return nil
 		}
 
@@ -502,7 +511,7 @@ type TxtAssetParser struct {
 
 func (parser *TxtAssetParser) Parse(absPath string) (ret *AssetParseResult) {
 	info, err := os.Stat(absPath)
-	if nil != err {
+	if err != nil {
 		logging.LogErrorf("stat file [%s] failed: %s", absPath, err)
 		return
 	}
@@ -519,7 +528,7 @@ func (parser *TxtAssetParser) Parse(absPath string) (ret *AssetParseResult) {
 	defer os.RemoveAll(tmp)
 
 	data, err := os.ReadFile(tmp)
-	if nil != err {
+	if err != nil {
 		logging.LogErrorf("read file [%s] failed: %s", absPath, err)
 		return
 	}
@@ -544,7 +553,7 @@ func normalizeNonTxtAssetContent(content string) (ret string) {
 
 func copyTempAsset(absPath string) (ret string) {
 	dir := filepath.Join(util.TempDir, "convert", "asset_content")
-	if err := os.MkdirAll(dir, 0755); nil != err {
+	if err := os.MkdirAll(dir, 0755); err != nil {
 		logging.LogErrorf("mkdir [%s] failed: [%s]", dir, err)
 		return
 	}
@@ -559,7 +568,7 @@ func copyTempAsset(absPath string) (ret string) {
 
 	ext := filepath.Ext(absPath)
 	ret = filepath.Join(dir, gulu.Rand.String(7)+ext)
-	if err := gulu.File.Copy(absPath, ret); nil != err {
+	if err := gulu.File.Copy(absPath, ret); err != nil {
 		logging.LogErrorf("copy [src=%s, dest=%s] failed: %s", absPath, ret, err)
 		return
 	}
@@ -585,14 +594,14 @@ func (parser *DocxAssetParser) Parse(absPath string) (ret *AssetParseResult) {
 	defer os.RemoveAll(tmp)
 
 	f, err := os.Open(tmp)
-	if nil != err {
+	if err != nil {
 		logging.LogErrorf("open [%s] failed: [%s]", tmp, err)
 		return
 	}
 	defer f.Close()
 
 	data, _, err := docconv.ConvertDocx(f)
-	if nil != err {
+	if err != nil {
 		logging.LogErrorf("convert [%s] failed: [%s]", tmp, err)
 		return
 	}
@@ -623,14 +632,14 @@ func (parser *PptxAssetParser) Parse(absPath string) (ret *AssetParseResult) {
 	defer os.RemoveAll(tmp)
 
 	f, err := os.Open(tmp)
-	if nil != err {
+	if err != nil {
 		logging.LogErrorf("open [%s] failed: [%s]", tmp, err)
 		return
 	}
 	defer f.Close()
 
 	data, _, err := docconv.ConvertPptx(f)
-	if nil != err {
+	if err != nil {
 		logging.LogErrorf("convert [%s] failed: [%s]", tmp, err)
 		return
 	}
@@ -661,7 +670,7 @@ func (parser *XlsxAssetParser) Parse(absPath string) (ret *AssetParseResult) {
 	defer os.RemoveAll(tmp)
 
 	x, err := excelize.OpenFile(tmp)
-	if nil != err {
+	if err != nil {
 		logging.LogErrorf("open [%s] failed: [%s]", tmp, err)
 		return
 	}
@@ -713,7 +722,7 @@ func (parser *PdfAssetParser) getTextPageWorker(id int, instance pdfium.Pdfium, 
 		doc, err := instance.OpenDocument(&requests.OpenDocument{
 			File: pd.data,
 		})
-		if nil != err {
+		if err != nil {
 			instance.FPDF_CloseDocument(&requests.FPDF_CloseDocument{
 				Document: doc.Document,
 			})
@@ -733,7 +742,7 @@ func (parser *PdfAssetParser) getTextPageWorker(id int, instance pdfium.Pdfium, 
 			},
 		}
 		res, err := instance.GetPageText(req)
-		if nil != err {
+		if err != nil {
 			instance.FPDF_CloseDocument(&requests.FPDF_CloseDocument{
 				Document: doc.Document,
 			})
@@ -756,7 +765,7 @@ func (parser *PdfAssetParser) getTextPageWorker(id int, instance pdfium.Pdfium, 
 
 // Parse will parse a PDF document using PDFium webassembly module using a worker pool
 func (parser *PdfAssetParser) Parse(absPath string) (ret *AssetParseResult) {
-	if util.ContainerIOS == util.Container || util.ContainerAndroid == util.Container {
+	if util.ContainerIOS == util.Container || util.ContainerAndroid == util.Container || util.ContainerHarmony == util.Container {
 		// PDF asset content searching is not supported on mobile platforms
 		return
 	}
@@ -778,7 +787,7 @@ func (parser *PdfAssetParser) Parse(absPath string) (ret *AssetParseResult) {
 
 	// PDF blob will be processed in-memory making sharing of PDF document data across worker goroutines possible
 	pdfData, err := os.ReadFile(tmp)
-	if nil != err {
+	if err != nil {
 		logging.LogErrorf("open [%s] failed: [%s]", tmp, err)
 		return
 	}
@@ -795,7 +804,7 @@ func (parser *PdfAssetParser) Parse(absPath string) (ret *AssetParseResult) {
 		MaxIdle:  cores,
 		MaxTotal: cores,
 	})
-	if nil != err {
+	if err != nil {
 		logging.LogErrorf("convert [%s] failed: [%s]", tmp, err)
 		return
 	}
@@ -803,20 +812,20 @@ func (parser *PdfAssetParser) Parse(absPath string) (ret *AssetParseResult) {
 
 	// first get the number of PDF pages to convert into text
 	instance, err := pool.GetInstance(time.Second * 30)
-	if nil != err {
+	if err != nil {
 		logging.LogErrorf("convert [%s] failed: [%s]", tmp, err)
 		return
 	}
 	doc, err := instance.OpenDocument(&requests.OpenDocument{
 		File: &pdfData,
 	})
-	if nil != err {
+	if err != nil {
 		instance.Close()
 		logging.LogErrorf("convert [%s] failed: [%s]", tmp, err)
 		return
 	}
 	pc, err := instance.FPDF_GetPageCount(&requests.FPDF_GetPageCount{Document: doc.Document})
-	if nil != err {
+	if err != nil {
 		instance.FPDF_CloseDocument(&requests.FPDF_CloseDocument{
 			Document: doc.Document,
 		})
@@ -854,7 +863,7 @@ func (parser *PdfAssetParser) Parse(absPath string) (ret *AssetParseResult) {
 	results := make(chan *pdfTextResult, pc.PageCount)
 	for i := 0; i < cores; i++ {
 		inst, err := pool.GetInstance(time.Second * 30)
-		if nil != err {
+		if err != nil {
 			close(pages)
 			close(results)
 			logging.LogErrorf("convert [%s] failed: [%s]", tmp, err)
@@ -880,7 +889,7 @@ func (parser *PdfAssetParser) Parse(absPath string) (ret *AssetParseResult) {
 		res := <-results
 		pageText[res.pageNo] = res.text
 		if nil != res.err {
-			logging.LogErrorf("convert [%s] of page %d failed: [%s]", tmp, res.pageNo, err)
+			logging.LogErrorf("convert [%s] of page %d failed: [%s]", tmp, res.pageNo, res.err)
 		}
 	}
 	close(results)
@@ -919,14 +928,14 @@ func (parser *EpubAssetParser) Parse(absPath string) (ret *AssetParseResult) {
 	defer os.RemoveAll(tmp)
 
 	f, err := os.Open(tmp)
-	if nil != err {
+	if err != nil {
 		logging.LogErrorf("open [%s] failed: [%s]", tmp, err)
 		return
 	}
 	defer f.Close()
 
 	buf := bytes.Buffer{}
-	if err = epub.ToTxt(tmp, &buf); nil != err {
+	if err = epub.ToTxt(tmp, &buf); err != nil {
 		logging.LogErrorf("convert [%s] failed: [%s]", tmp, err)
 		return
 	}

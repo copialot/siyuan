@@ -8,6 +8,8 @@ import {API} from "./API";
 import {getFrontend, isMobile, isWindow} from "../util/functions";
 import {Constants} from "../constants";
 import {uninstall} from "./uninstall";
+import {setStorageVal} from "../protyle/util/compatibility";
+import { getAllEditor } from "../layout/getAll";
 
 const requireFunc = (key: string) => {
     const modules = {
@@ -84,9 +86,11 @@ export const loadPlugin = async (app: App, item: IPluginData) => {
     document.head.append(styleElement);
     afterLoadPlugin(plugin);
     saveLayout();
+    getAllEditor().forEach(editor => {
+      editor.protyle.toolbar.update(editor.protyle);
+    });
     return plugin;
 };
-
 
 const updateDock = (dockItem: Config.IUILayoutDockTab[], index: number, plugin: Plugin, type: string) => {
     const dockKeys = Object.keys(plugin.docks);
@@ -102,6 +106,11 @@ const updateDock = (dockItem: Config.IUILayoutDockTab[], index: number, plugin: 
             plugin.docks[tabItem.type].config.index = tabIndex;
             plugin.docks[tabItem.type].config.show = tabItem.show;
             plugin.docks[tabItem.type].config.size = tabItem.size;
+            if (!window.siyuan.storage[Constants.LOCAL_PLUGIN_DOCKS][plugin.name]) {
+                window.siyuan.storage[Constants.LOCAL_PLUGIN_DOCKS][plugin.name] = {};
+            }
+            window.siyuan.storage[Constants.LOCAL_PLUGIN_DOCKS][plugin.name][tabItem.type] = plugin.docks[tabItem.type].config;
+            setStorageVal(Constants.LOCAL_PLUGIN_DOCKS, window.siyuan.storage[Constants.LOCAL_PLUGIN_DOCKS]);
         }
     });
 };
@@ -114,18 +123,9 @@ export const afterLoadPlugin = (plugin: Plugin) => {
     }
 
     if (!isWindow() || isMobile()) {
-        const unPinMenu: IMenu[] = [];
         plugin.topBarIcons.forEach(element => {
             if (isMobile()) {
-                if (window.siyuan.storage[Constants.LOCAL_PLUGINTOPUNPIN].includes(element.id)) {
-                    unPinMenu.push({
-                        iconHTML: element.firstElementChild.outerHTML,
-                        label: element.textContent.trim(),
-                        click() {
-                            element.dispatchEvent(new CustomEvent("click"));
-                        }
-                    });
-                } else {
+                if (!window.siyuan.storage[Constants.LOCAL_PLUGINTOPUNPIN].includes(element.id)) {
                     document.querySelector("#menuAbout").after(element);
                 }
             } else if (!isWindow()) {
@@ -135,9 +135,6 @@ export const afterLoadPlugin = (plugin: Plugin) => {
                 document.querySelector("#" + (element.getAttribute("data-position") === "right" ? "barPlugins" : "drag")).before(element);
             }
         });
-        if (isMobile() && unPinMenu.length > 0) {
-            return unPinMenu;
-        }
     }
     /// #if !MOBILE
     resizeTopBar();
@@ -165,6 +162,9 @@ export const afterLoadPlugin = (plugin: Plugin) => {
         updateDock(dockItem, index, plugin, "Bottom");
     });
     Object.keys(plugin.docks).forEach(key => {
+        if (window.siyuan.storage[Constants.LOCAL_PLUGIN_DOCKS][plugin.name]  && window.siyuan.storage[Constants.LOCAL_PLUGIN_DOCKS][plugin.name][key]) {
+            plugin.docks[key].config = window.siyuan.storage[Constants.LOCAL_PLUGIN_DOCKS][plugin.name][key];
+        }
         const dock = plugin.docks[key];
         const hotkey = window.siyuan.config.keymap.plugin[plugin.name] ? window.siyuan.config.keymap.plugin[plugin.name][key]?.custom : undefined;
         if (dock.config.position.startsWith("Left")) {

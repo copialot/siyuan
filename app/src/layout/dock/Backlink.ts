@@ -10,6 +10,7 @@ import {openFileById} from "../../editor/util";
 import {Protyle} from "../../protyle";
 import {MenuItem} from "../../menus/Menu";
 import {App} from "../../index";
+import {searchMarkRender} from "../../protyle/render/searchMarkRender";
 
 export class Backlink extends Model {
     public element: HTMLElement;
@@ -436,7 +437,7 @@ export class Backlink extends Model {
             fetchPost(isMention ? "/api/ref/getBackmentionDoc" : "/api/ref/getBacklinkDoc", {
                 defID: this.blockId,
                 refTreeID: docId,
-                keyword: isMention ? this.inputsElement[1].value : this.inputsElement[0].value
+                keyword: isMention ? this.inputsElement[1].value : this.inputsElement[0].value,
             }, (response) => {
                 svgElement.removeAttribute("disabled");
                 svgElement.classList.add("b3-list-item__arrow--open");
@@ -456,19 +457,17 @@ export class Backlink extends Model {
                     }
                 });
                 editor.protyle.notebookId = liElement.getAttribute("data-notebook-id");
+                searchMarkRender(editor.protyle, editor.protyle.wysiwyg.element.querySelectorAll('span[data-type~="search-mark"]'));
                 this.editors.push(editor);
             });
         }
     }
 
     public refresh() {
-        if (!this.blockId) {
+        const element = this.element.querySelector('.block__icon[data-type="refresh"] svg');
+        if (!this.blockId || element.classList.contains("fn__rotate")) {
             return;
         }
-        this.editors.forEach(item => {
-            item.destroy();
-        });
-        const element = this.element.querySelector('.block__icon[data-type="refresh"] svg');
         element.classList.add("fn__rotate");
         fetchPost("/api/ref/refreshBacklink", {
             id: this.blockId,

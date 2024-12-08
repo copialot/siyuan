@@ -25,15 +25,15 @@ import (
 
 func AutoSpace(rootID string) (err error) {
 	tree, err := LoadTreeByBlockID(rootID)
-	if nil != err {
+	if err != nil {
 		return
 	}
 
 	logging.LogInfof("formatting tree [%s]...", rootID)
 	util.PushProtyleLoading(rootID, Conf.Language(116))
-	defer util.PushProtyleReload(rootID)
+	defer util.PushReloadProtyle(rootID)
 
-	WaitForWritingFiles()
+	FlushTxQueue()
 
 	generateOpTypeHistory(tree, HistoryOpFormat)
 	luteEngine := NewLute()
@@ -69,7 +69,7 @@ func AutoSpace(rootID string) (err error) {
 	newTree.HPath = tree.HPath
 	newTree.Box = tree.Box
 	err = writeTreeUpsertQueue(newTree)
-	if nil != err {
+	if err != nil {
 		return
 	}
 	logging.LogInfof("formatted tree [%s]", rootID)

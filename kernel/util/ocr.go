@@ -79,15 +79,15 @@ func LoadAssetsTexts() {
 
 	start := time.Now()
 	data, err := filelock.ReadFile(assetsTextsPath)
-	if nil != err {
+	if err != nil {
 		logging.LogErrorf("read assets texts failed: %s", err)
 		return
 	}
 
 	assetsTextsLock.Lock()
-	if err = gulu.JSON.UnmarshalJSON(data, &assetsTexts); nil != err {
+	if err = gulu.JSON.UnmarshalJSON(data, &assetsTexts); err != nil {
 		logging.LogErrorf("unmarshal assets texts failed: %s", err)
-		if err = filelock.Remove(assetsTextsPath); nil != err {
+		if err = filelock.Remove(assetsTextsPath); err != nil {
 			logging.LogErrorf("removed corrupted assets texts failed: %s", err)
 		}
 		return
@@ -110,7 +110,7 @@ func SaveAssetsTexts() {
 
 	assetsTextsLock.Lock()
 	data, err := gulu.JSON.MarshalIndentJSON(assetsTexts, "", "  ")
-	if nil != err {
+	if err != nil {
 		logging.LogErrorf("marshal assets texts failed: %s", err)
 		return
 	}
@@ -118,7 +118,7 @@ func SaveAssetsTexts() {
 
 	assetsPath := GetDataAssetsAbsPath()
 	assetsTextsPath := filepath.Join(assetsPath, "ocr-texts.json")
-	if err = filelock.WriteFile(assetsTextsPath, data); nil != err {
+	if err = filelock.WriteFile(assetsTextsPath, data); err != nil {
 		logging.LogErrorf("write assets texts failed: %s", err)
 		return
 	}
@@ -164,10 +164,18 @@ func OcrAsset(asset string) (ret []map[string]interface{}) {
 	return
 }
 
-// https://github.com/siyuan-note/siyuan/pull/11708
 func GetAssetText(asset string) (ret string) {
+	assetsTextsLock.Lock()
 	ret = assetsTexts[asset]
+	assetsTextsLock.Unlock()
 	return
+}
+
+func RemoveAssetText(asset string) {
+	assetsTextsLock.Lock()
+	delete(assetsTexts, asset)
+	assetsTextsLock.Unlock()
+	assetsTextsChanged.Store(true)
 }
 
 func IsTesseractExtractable(p string) bool {
@@ -192,7 +200,7 @@ func Tesseract(imgAbsPath string) (ret []map[string]interface{}) {
 	}
 
 	info, err := os.Stat(imgAbsPath)
-	if nil != err {
+	if err != nil {
 		return
 	}
 
@@ -213,15 +221,17 @@ func Tesseract(imgAbsPath string) (ret []map[string]interface{}) {
 		return
 	}
 
-	if nil != err {
+	if err != nil {
 		logging.LogWarnf("tesseract [path=%s, size=%d] failed: %s", imgAbsPath, info.Size(), err)
 		return
 	}
 
 	tsv := string(output)
+	//logging.LogInfof("tesseract [path=%s] success [%s]", imgAbsPath, tsv)
 
 	// 按行分割 TSV 数据
-	lines := strings.Split(tsv, "\r\n")
+	tsv = strings.ReplaceAll(tsv, "\r", "")
+	lines := strings.Split(tsv, "\n")
 
 	// 解析 TSV 数据 跳过标题行，从第二行开始处理
 	for _, line := range lines[1:] {
@@ -238,7 +248,7 @@ func Tesseract(imgAbsPath string) (ret []map[string]interface{}) {
 		ret = append(ret, dataMap)
 	}
 
-	tsv = gulu.Str.RemoveInvisible(tsv)
+	tsv = RemoveInvalid(tsv)
 	tsv = RemoveRedundantSpace(tsv)
 	msg := fmt.Sprintf("OCR [%s] [%s]", html.EscapeString(info.Name()), html.EscapeString(GetOcrJsonText(ret)))
 	PushStatusBar(msg)
@@ -252,11 +262,11 @@ func GetOcrJsonText(jsonData []map[string]interface{}) (ret string) {
 		if text, ok := dataMap["text"]; ok {
 			// 确保 text 是字符串类型
 			if textStr, ok := text.(string); ok {
-				ret += " " + textStr
+				ret += " " + strings.ReplaceAll(textStr, "\r", "")
 			}
 		}
 	}
-	ret = gulu.Str.RemoveInvisible(ret)
+	ret = RemoveInvalid(ret)
 	ret = RemoveRedundantSpace(ret)
 	return ret
 }
@@ -341,14 +351,14 @@ func getTesseractVer() (ret string) {
 	cmd := exec.Command(TesseractBin, "--version")
 	gulu.CmdAttr(cmd)
 	data, err := cmd.CombinedOutput()
-	if nil != err {
+	if err != nil {
 		if strings.Contains(err.Error(), "executable file not found") {
 			// macOS 端 Tesseract OCR 安装后不识别 https://github.com/siyuan-note/siyuan/issues/7107
 			TesseractBin = "/usr/local/bin/tesseract"
 			cmd = exec.Command(TesseractBin, "--version")
 			gulu.CmdAttr(cmd)
 			data, err = cmd.CombinedOutput()
-			if nil != err && strings.Contains(err.Error(), "executable file not found") {
+			if err != nil && strings.Contains(err.Error(), "executable file not found") {
 				TesseractBin = "/opt/homebrew/bin/tesseract"
 				cmd = exec.Command(TesseractBin, "--version")
 				gulu.CmdAttr(cmd)
@@ -356,7 +366,7 @@ func getTesseractVer() (ret string) {
 			}
 		}
 	}
-	if nil != err {
+	if err != nil {
 		return
 	}
 
@@ -380,7 +390,7 @@ func getTesseractLangs() (ret []string) {
 	cmd := exec.Command(TesseractBin, "--list-langs")
 	gulu.CmdAttr(cmd)
 	data, err := cmd.CombinedOutput()
-	if nil != err {
+	if err != nil {
 		return nil
 	}
 

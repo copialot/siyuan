@@ -10,7 +10,6 @@ import {confirmDialog} from "../../dialog/confirmDialog";
 import {getThemeMode, setInlineStyle} from "../../util/assets";
 import {fetchPost} from "../../util/fetch";
 import {Dialog} from "../../dialog";
-import {pathPosix} from "../../util/pathName";
 import {replaceLocalPath} from "../../editor/rename";
 import {setStorageVal} from "../util/compatibility";
 import {isPaidUser} from "../../util/needSubscribe";
@@ -65,7 +64,7 @@ export const saveExport = (option: IExportOptions) => {
             wordDialog.destroy();
         });
     } else {
-        getExportPath(option);
+        getExportPath(option, false, true);
     }
     /// #endif
 };
@@ -270,7 +269,7 @@ const renderPDF = async (id: string) => {
     </div>
 </div>
 <div style="zoom:${localData.scale || 1}" id="preview">
-    <div class="fn__loading" style="left:0"><img width="48px" src="${servePath}/stage/loading-pure.svg"></div>
+    <div class="fn__loading" style="left:0;height:100vh"><img width="48px" src="${servePath}/stage/loading-pure.svg"></div>
 </div>
 <script src="${servePath}/appearance/icons/${window.siyuan.config.appearance.icon}/icon.js?${Constants.SIYUAN_VERSION}"></script>
 <script src="${servePath}/stage/build/export/protyle-method.js?${Constants.SIYUAN_VERSION}"></script>
@@ -442,7 +441,8 @@ const renderPDF = async (id: string) => {
                     const linkAddress = target.getAttribute("href");
                     if (linkAddress.startsWith("#")) {
                         // 导出预览模式点击块引转换后的脚注跳转不正确 https://github.com/siyuan-note/siyuan/issues/5700
-                        previewElement.querySelector(linkAddress).scrollIntoView();
+                        const hash = linkAddress.substring(1);
+                        previewElement.querySelector('[data-node-id="' + hash + '"], [id="' + hash + '"]').scrollIntoView();
                         event.stopPropagation();
                         event.preventDefault();
                         return;
@@ -475,7 +475,7 @@ const renderPDF = async (id: string) => {
             }
         });
         const refreshPreview = () => {
-          previewElement.innerHTML = '<div class="fn__loading" style="left:0"><img width="48px" src="${servePath}/stage/loading-pure.svg"></div>'
+            previewElement.innerHTML = '<div class="fn__loading" style="left:0;height: 100vh"><img width="48px" src="${servePath}/stage/loading-pure.svg"></div>'
             fetchPost("/api/export/exportPreviewHTML", {
                 id: "${id}",
                 keepFold: keepFoldElement.checked,
@@ -661,7 +661,8 @@ const onExport = (data: IWebSocketData, filePath: string, exportOption: IExportO
     <link rel="stylesheet" type="text/css" id="baseStyle" href="stage/build/export/base.css?${Constants.SIYUAN_VERSION}"/>
     <link rel="stylesheet" type="text/css" id="themeDefaultStyle" href="appearance/themes/${themeName}/theme.css?${Constants.SIYUAN_VERSION}"/>
     ${themeStyle}
-    <title>${pathPosix().basename(filePath)} - ${window.siyuan.languages.siyuanNote}  v${Constants.SIYUAN_VERSION}</title>
+    <title>${data.data.name}</title>
+    <!-- Exported by SiYuan v${Constants.SIYUAN_VERSION} -->
     <style>
         body {font-family: var(--b3-font-family);background-color: var(--b3-theme-background);color: var(--b3-theme-on-background)}
         ${setInlineStyle(false)}

@@ -6,7 +6,8 @@
 		"icon": "1f5c3-fe0f",
 		"id": "20240208171522-y7dxcno",
 		"title": "資料庫",
-		"updated": "20240208174001"
+		"type": "doc",
+		"updated": "20241018105422"
 	},
 	"Children": [
 		{
@@ -34,7 +35,7 @@
 			"Children": [
 				{
 					"Type": "NodeText",
-					"Data": "資料庫由內容區塊或非內容區塊資料組成，並以不同視圖呈現，例如表格視圖和看板視圖（看板視圖仍在開發中）。"
+					"Data": "資料庫由內容塊或非內容塊資料組成，並以不同視圖呈現，例如表格視圖和看板視圖（看板視圖仍在開發中）。"
 				}
 			]
 		},
@@ -44,7 +45,7 @@
 			"HeadingLevel": 2,
 			"Properties": {
 				"id": "20240208171620-hbecr4u",
-				"updated": "20240208171620"
+				"updated": "20241018105422"
 			},
 			"Children": [
 				{
@@ -59,7 +60,7 @@
 			"ListData": {},
 			"Properties": {
 				"id": "20240208171620-r36g6d4",
-				"updated": "20240208171621"
+				"updated": "20241018105422"
 			},
 			"Children": [
 				{
@@ -121,7 +122,7 @@
 							"Children": [
 								{
 									"Type": "NodeText",
-									"Data": "新增不同類型的屬性"
+									"Data": "新增不同類型的欄位"
 								}
 							]
 						}
@@ -136,7 +137,7 @@
 					},
 					"Properties": {
 						"id": "20240208171620-b1b1l10",
-						"updated": "20240208171620"
+						"updated": "20241018105422"
 					},
 					"Children": [
 						{
@@ -149,7 +150,7 @@
 							"Children": [
 								{
 									"Type": "NodeText",
-									"Data": "新增行"
+									"Data": "新增條目"
 								}
 							]
 						},
@@ -159,7 +160,7 @@
 							"ListData": {},
 							"Properties": {
 								"id": "20240208171620-o6mi24d",
-								"updated": "20240208171620"
+								"updated": "20241018105422"
 							},
 							"Children": [
 								{
@@ -184,7 +185,7 @@
 											"Children": [
 												{
 													"Type": "NodeText",
-													"Data": "非內容區塊：直接在表格中新增的行，不綁定到任何內容區塊"
+													"Data": "非內容塊：直接在表格中新增的條目，不綁定到任何內容塊"
 												}
 											]
 										}
@@ -199,7 +200,7 @@
 									},
 									"Properties": {
 										"id": "20240208171620-ks66a38",
-										"updated": "20240208171620"
+										"updated": "20241018105422"
 									},
 									"Children": [
 										{
@@ -207,12 +208,12 @@
 											"Type": "NodeParagraph",
 											"Properties": {
 												"id": "20240208171620-eo37wp1",
-												"updated": "20240208171620"
+												"updated": "20241018105422"
 											},
 											"Children": [
 												{
 													"Type": "NodeText",
-													"Data": "內容區塊：透過拖曳到表格新增的行，或透過區塊標選單 "
+													"Data": "內容塊：透過拖曳到表格新增的條目，或透過塊標選單 "
 												},
 												{
 													"Type": "NodeTextMark",
@@ -221,7 +222,7 @@
 												},
 												{
 													"Type": "NodeText",
-													"Data": "​ 新增的行"
+													"Data": "​ 新增的條目"
 												}
 											]
 										}
@@ -295,7 +296,7 @@
 			"HeadingLevel": 2,
 			"Properties": {
 				"id": "20240208171620-kdmsvx8",
-				"updated": "20240208171620"
+				"updated": "20241018105418"
 			},
 			"Children": [
 				{
@@ -309,12 +310,12 @@
 			"Type": "NodeParagraph",
 			"Properties": {
 				"id": "20240208171620-3oc3qf5",
-				"updated": "20240208171621"
+				"updated": "20241018105418"
 			},
 			"Children": [
 				{
 					"Type": "NodeText",
-					"Data": "複製資料庫區塊後貼上將形成鏡像資料庫，即這些資料庫區塊共享相同的資料庫數據，修改任何一個資料庫區塊的資料會同步到其他所有鏡像中。"
+					"Data": "複製資料庫塊後貼上將形成鏡像資料庫，即這些資料庫塊共享相同的資料庫數據，修改任何一個資料庫塊的資料會同步到其他所有鏡像中。"
 				}
 			]
 		},
@@ -436,7 +437,7 @@
 				{
 					"Type": "NodeTextMark",
 					"TextMarkType": "code",
-					"TextMarkTextContent": "行計數"
+					"TextMarkTextContent": "條目數"
 				},
 				{
 					"Type": "NodeText",
@@ -450,7 +451,7 @@
 			"HeadingLevel": 2,
 			"Properties": {
 				"id": "20240208172038-fewwv8i",
-				"updated": "20240208172038"
+				"updated": "20240818174403"
 			},
 			"Children": [
 				{
@@ -480,7 +481,7 @@
 				},
 				{
 					"Type": "NodeText",
-					"Data": "中介紹的語法存取、計算並渲染同一資料中其他屬性的值："
+					"Data": "中介紹的語法存取、計算並渲染同一資料中其他欄位的值："
 				}
 			]
 		},
@@ -520,11 +521,11 @@
 								{
 									"Type": "NodeTextMark",
 									"TextMarkType": "code",
-									"TextMarkTextContent": ".action{ .屬性名 }"
+									"TextMarkTextContent": ".action{ .欄位名 }"
 								},
 								{
 									"Type": "NodeText",
-									"Data": "​ 存取視圖屬性"
+									"Data": "​ 存取視圖欄位"
 								}
 							]
 						}
@@ -561,7 +562,7 @@
 								},
 								{
 									"Type": "NodeText",
-									"Data": "​ 存取內容區塊自訂屬性"
+									"Data": "​ 存取內容塊自訂屬性"
 								}
 							]
 						}
@@ -597,7 +598,7 @@
 				},
 				{
 					"Type": "NodeText",
-					"Data": "​ 屬性示範了 "
+					"Data": "​ 欄位示範了 "
 				},
 				{
 					"Type": "NodeTextMark",
@@ -628,6 +629,49 @@
 			},
 			"AttributeViewID": "20240208172113-d44j7tk",
 			"AttributeViewType": "table"
+		},
+		{
+			"ID": "20240818174403-xnbqd38",
+			"Type": "NodeHeading",
+			"HeadingLevel": 2,
+			"Properties": {
+				"id": "20240818174403-xnbqd38",
+				"updated": "20240818174636"
+			},
+			"Children": [
+				{
+					"Type": "NodeTextMark",
+					"TextMarkType": "tag",
+					"TextMarkTextContent": "注意"
+				},
+				{
+					"Type": "NodeText",
+					"Data": "​"
+				}
+			]
+		},
+		{
+			"ID": "20240818174421-v5il1as",
+			"Type": "NodeParagraph",
+			"Properties": {
+				"id": "20240818174421-v5il1as",
+				"updated": "20240818174636"
+			},
+			"Children": [
+				{
+					"Type": "NodeText",
+					"Data": "如果需要在資料庫單元格中換行，請使用 "
+				},
+				{
+					"Type": "NodeTextMark",
+					"TextMarkType": "kbd",
+					"TextMarkTextContent": "Shift+Enter"
+				},
+				{
+					"Type": "NodeText",
+					"Data": "​ 。"
+				}
+			]
 		}
 	]
 }

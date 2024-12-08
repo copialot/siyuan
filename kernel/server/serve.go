@@ -32,9 +32,11 @@ import (
 	"time"
 
 	"github.com/88250/gulu"
+	"github.com/emersion/go-webdav/caldav"
+	"github.com/emersion/go-webdav/carddav"
 	"github.com/gin-contrib/gzip"
 	"github.com/gin-contrib/sessions"
-	"github.com/gin-contrib/sessions/cookie"
+	"github.com/gin-contrib/sessions/memstore"
 	"github.com/gin-gonic/gin"
 	"github.com/mssola/useragent"
 	"github.com/olahol/melody"
@@ -44,10 +46,87 @@ import (
 	"github.com/siyuan-note/siyuan/kernel/model"
 	"github.com/siyuan-note/siyuan/kernel/server/proxy"
 	"github.com/siyuan-note/siyuan/kernel/util"
+	"golang.org/x/net/webdav"
+)
+
+const (
+	MethodMkCol     = "MKCOL"
+	MethodCopy      = "COPY"
+	MethodMove      = "MOVE"
+	MethodLock      = "LOCK"
+	MethodUnlock    = "UNLOCK"
+	MethodPropFind  = "PROPFIND"
+	MethodPropPatch = "PROPPATCH"
+	MethodReport    = "REPORT"
 )
 
 var (
-	cookieStore = cookie.NewStore([]byte("ATN51UlxVq1Gcvdf"))
+	// 这里用的是内存存储，意味着重启后所有 session 会丢失，需要重新登录
+	sessionStore = memstore.NewStore([]byte("ATN51UlxVq1Gcvdf"))
+
+	HttpMethods = []string{
+		http.MethodGet,
+		http.MethodHead,
+		http.MethodPost,
+		http.MethodPut,
+		http.MethodPatch,
+		http.MethodDelete,
+		http.MethodConnect,
+		http.MethodOptions,
+		http.MethodTrace,
+	}
+	WebDavMethods = []string{
+		http.MethodOptions,
+		http.MethodHead,
+		http.MethodGet,
+		http.MethodPost,
+		http.MethodPut,
+		http.MethodDelete,
+
+		MethodMkCol,
+		MethodCopy,
+		MethodMove,
+		MethodLock,
+		MethodUnlock,
+		MethodPropFind,
+		MethodPropPatch,
+	}
+	CalDavMethods = []string{
+		http.MethodOptions,
+		http.MethodHead,
+		http.MethodGet,
+		http.MethodPost,
+		http.MethodPut,
+		http.MethodDelete,
+
+		MethodMkCol,
+		MethodCopy,
+		MethodMove,
+		// MethodLock,
+		// MethodUnlock,
+		MethodPropFind,
+		MethodPropPatch,
+
+		MethodReport,
+	}
+	CardDavMethods = []string{
+		http.MethodOptions,
+		http.MethodHead,
+		http.MethodGet,
+		http.MethodPost,
+		http.MethodPut,
+		http.MethodDelete,
+
+		MethodMkCol,
+		MethodCopy,
+		MethodMove,
+		// MethodLock,
+		// MethodUnlock,
+		MethodPropFind,
+		MethodPropPatch,
+
+		MethodReport,
+	}
 )
 
 func Serve(fastMode bool) {
@@ -64,18 +143,21 @@ func Serve(fastMode bool) {
 		gzip.Gzip(gzip.DefaultCompression, gzip.WithExcludedExtensions([]string{".pdf", ".mp3", ".wav", ".ogg", ".mov", ".weba", ".mkv", ".mp4", ".webm"})),
 	)
 
-	cookieStore.Options(sessions.Options{
+	sessionStore.Options(sessions.Options{
 		Path:   "/",
 		Secure: util.SSL,
 		//MaxAge:   60 * 60 * 24 * 7, // 默认是 Session
 		HttpOnly: true,
 	})
-	ginServer.Use(sessions.Sessions("siyuan", cookieStore))
+	ginServer.Use(sessions.Sessions("siyuan", sessionStore))
 
 	serveDebug(ginServer)
 	serveAssets(ginServer)
 	serveAppearance(ginServer)
 	serveWebSocket(ginServer)
+	serveWebDAV(ginServer)
+	serveCalDAV(ginServer)
+	serveCardDAV(ginServer)
 	serveExport(ginServer)
 	serveWidgets(ginServer)
 	servePlugins(ginServer)
@@ -96,7 +178,7 @@ func Serve(fastMode bool) {
 	}
 
 	ln, err := net.Listen("tcp", host+":"+util.ServerPort)
-	if nil != err {
+	if err != nil {
 		if !fastMode {
 			logging.LogErrorf("boot kernel failed: %s", err)
 			os.Exit(logging.ExitCodeUnavailablePort)
@@ -107,7 +189,7 @@ func Serve(fastMode bool) {
 	}
 
 	_, port, err := net.SplitHostPort(ln.Addr().String())
-	if nil != err {
+	if err != nil {
 		if !fastMode {
 			logging.LogErrorf("boot kernel failed: %s", err)
 			os.Exit(logging.ExitCodeUnavailablePort)
@@ -136,7 +218,7 @@ func Serve(fastMode bool) {
 		// 反代服务器启动失败不影响核心服务器启动
 	}()
 
-	if err = http.Serve(ln, ginServer.Handler()); nil != err {
+	if err = http.Serve(ln, ginServer.Handler()); err != nil {
 		if !fastMode {
 			logging.LogErrorf("boot kernel failed: %s", err)
 			os.Exit(logging.ExitCodeUnavailablePort)
@@ -152,27 +234,29 @@ func rewritePortJSON(pid, port string) {
 
 	if gulu.File.IsExist(portJSON) {
 		data, err = os.ReadFile(portJSON)
-		if nil != err {
+		if err != nil {
 			logging.LogWarnf("read port.json failed: %s", err)
 		} else {
-			if err = gulu.JSON.UnmarshalJSON(data, &pidPorts); nil != err {
+			if err = gulu.JSON.UnmarshalJSON(data, &pidPorts); err != nil {
 				logging.LogWarnf("unmarshal port.json failed: %s", err)
 			}
 		}
 	}
 
 	pidPorts[pid] = port
-	if data, err = gulu.JSON.MarshalIndentJSON(pidPorts, "", "  "); nil != err {
+	if data, err = gulu.JSON.MarshalIndentJSON(pidPorts, "", "  "); err != nil {
 		logging.LogWarnf("marshal port.json failed: %s", err)
 	} else {
-		if err = os.WriteFile(portJSON, data, 0644); nil != err {
+		if err = os.WriteFile(portJSON, data, 0644); err != nil {
 			logging.LogWarnf("write port.json failed: %s", err)
 		}
 	}
 }
 
 func serveExport(ginServer *gin.Engine) {
-	ginServer.Static("/export/", filepath.Join(util.TempDir, "export"))
+	// Potential data export disclosure security vulnerability https://github.com/siyuan-note/siyuan/issues/12213
+	exportGroup := ginServer.Group("/export/", model.CheckAuth)
+	exportGroup.Static("/", filepath.Join(util.TempDir, "export"))
 }
 
 func serveWidgets(ginServer *gin.Engine) {
@@ -202,7 +286,7 @@ func serveSnippets(ginServer *gin.Engine) {
 		ext := filepath.Ext(filePath)
 		name := strings.TrimSuffix(filePath, ext)
 		confSnippets, err := model.LoadSnippets()
-		if nil != err {
+		if err != nil {
 			logging.LogErrorf("load snippets failed: %s", err)
 			c.Status(http.StatusNotFound)
 			return
@@ -276,13 +360,13 @@ func serveAppearance(ginServer *gin.Engine) {
 
 				enUSFilePath := filepath.Join(appearancePath, "langs", "en_US.json")
 				enUSData, err := os.ReadFile(enUSFilePath)
-				if nil != err {
+				if err != nil {
 					logging.LogErrorf("read en_US.json [%s] failed: %s", enUSFilePath, err)
 					util.ReportFileSysFatalError(err)
 					return
 				}
 				enUSMap := map[string]interface{}{}
-				if err = gulu.JSON.UnmarshalJSON(enUSData, &enUSMap); nil != err {
+				if err = gulu.JSON.UnmarshalJSON(enUSData, &enUSMap); err != nil {
 					logging.LogErrorf("unmarshal en_US.json [%s] failed: %s", enUSFilePath, err)
 					util.ReportFileSysFatalError(err)
 					return
@@ -290,13 +374,13 @@ func serveAppearance(ginServer *gin.Engine) {
 
 				for {
 					data, err := os.ReadFile(filePath)
-					if nil != err {
+					if err != nil {
 						c.JSON(200, enUSMap)
 						return
 					}
 
 					langMap := map[string]interface{}{}
-					if err = gulu.JSON.UnmarshalJSON(data, &langMap); nil != err {
+					if err = gulu.JSON.UnmarshalJSON(data, &langMap); err != nil {
 						logging.LogErrorf("unmarshal json [%s] failed: %s", filePath, err)
 						c.JSON(200, enUSMap)
 						return
@@ -325,14 +409,14 @@ func serveCheckAuth(ginServer *gin.Engine) {
 
 func serveAuthPage(c *gin.Context) {
 	data, err := os.ReadFile(filepath.Join(util.WorkingDir, "stage/auth.html"))
-	if nil != err {
+	if err != nil {
 		logging.LogErrorf("load auth page failed: %s", err)
 		c.Status(500)
 		return
 	}
 
 	tpl, err := template.New("auth").Parse(string(data))
-	if nil != err {
+	if err != nil {
 		logging.LogErrorf("parse auth page failed: %s", err)
 		c.Status(500)
 		return
@@ -369,14 +453,14 @@ func serveAuthPage(c *gin.Context) {
 		"l8":                     model.Conf.Language(95),
 		"appearanceMode":         model.Conf.Appearance.Mode,
 		"appearanceModeOS":       model.Conf.Appearance.ModeOS,
-		"workspace":              filepath.Base(util.WorkspaceDir),
+		"workspace":              util.WorkspaceName,
 		"workspacePath":          util.WorkspaceDir,
 		"keymapGeneralToggleWin": keymapHideWindow,
 		"trayMenuLangs":          util.TrayMenuLangs[util.Lang],
 		"workspaceDir":           util.WorkspaceDir,
 	}
 	buf := &bytes.Buffer{}
-	if err = tpl.Execute(buf, model); nil != err {
+	if err = tpl.Execute(buf, model); err != nil {
 		logging.LogErrorf("execute auth page failed: %s", err)
 		c.Status(500)
 		return
@@ -392,7 +476,7 @@ func serveAssets(ginServer *gin.Engine) {
 		requestPath := context.Param("path")
 		relativePath := path.Join("assets", requestPath)
 		p, err := model.GetAssetAbsPath(relativePath)
-		if nil != err {
+		if err != nil {
 			if strings.Contains(strings.TrimPrefix(requestPath, "/"), "/") {
 				// 再使用编码过的路径解析一次 https://github.com/siyuan-note/siyuan/issues/11823
 				dest := url.PathEscape(strings.TrimPrefix(requestPath, "/"))
@@ -401,7 +485,7 @@ func serveAssets(ginServer *gin.Engine) {
 				p, err = model.GetAssetAbsPath(relativePath)
 			}
 
-			if nil != err {
+			if err != nil {
 				context.Status(http.StatusNotFound)
 				return
 			}
@@ -448,7 +532,7 @@ func serveWebSocket(ginServer *gin.Engine) {
 	util.WebSocketServer.Config.MaxMessageSize = 1024 * 1024 * 8
 
 	ginServer.GET("/ws", func(c *gin.Context) {
-		if err := util.WebSocketServer.HandleRequest(c.Writer, c.Request); nil != err {
+		if err := util.WebSocketServer.HandleRequest(c.Writer, c.Request); err != nil {
 			logging.LogErrorf("handle command failed: %s", err)
 		}
 	})
@@ -462,8 +546,8 @@ func serveWebSocket(ginServer *gin.Engine) {
 		authOk := true
 
 		if "" != model.Conf.AccessAuthCode {
-			session, err := cookieStore.Get(s.Request, "siyuan")
-			if nil != err {
+			session, err := sessionStore.Get(s.Request, "siyuan")
+			if err != nil {
 				authOk = false
 				logging.LogErrorf("get cookie failed: %s", err)
 			} else {
@@ -473,7 +557,7 @@ func serveWebSocket(ginServer *gin.Engine) {
 				} else {
 					sess := &util.SessionData{}
 					err = gulu.JSON.UnmarshalJSON([]byte(val.(string)), sess)
-					if nil != err {
+					if err != nil {
 						authOk = false
 						logging.LogErrorf("unmarshal cookie failed: %s", err)
 					} else {
@@ -532,7 +616,7 @@ func serveWebSocket(ginServer *gin.Engine) {
 		start := time.Now()
 		logging.LogTracef("request [%s]", shortReqMsg(msg))
 		request := map[string]interface{}{}
-		if err := gulu.JSON.UnmarshalJSON(msg, &request); nil != err {
+		if err := gulu.JSON.UnmarshalJSON(msg, &request); err != nil {
 			result := util.NewResult()
 			result.Code = -1
 			result.Msg = "Bad Request"
@@ -587,6 +671,112 @@ func serveWebSocket(ginServer *gin.Engine) {
 	})
 }
 
+func serveWebDAV(ginServer *gin.Engine) {
+	// REF: https://github.com/fungaren/gin-webdav
+	handler := webdav.Handler{
+		Prefix:     "/webdav/",
+		FileSystem: webdav.Dir(util.WorkspaceDir),
+		LockSystem: webdav.NewMemLS(),
+		Logger: func(r *http.Request, err error) {
+			if nil != err {
+				logging.LogErrorf("WebDAV [%s %s]: %s", r.Method, r.URL.String(), err.Error())
+			}
+			// logging.LogDebugf("WebDAV [%s %s]", r.Method, r.URL.String())
+		},
+	}
+
+	ginGroup := ginServer.Group("/webdav", model.CheckAuth, model.CheckAdminRole)
+	// ginGroup.Any NOT support extension methods (PROPFIND etc.)
+	ginGroup.Match(WebDavMethods, "/*path", func(c *gin.Context) {
+		if util.ReadOnly {
+			switch c.Request.Method {
+			case http.MethodPost,
+				http.MethodPut,
+				http.MethodDelete,
+				MethodMkCol,
+				MethodCopy,
+				MethodMove,
+				MethodLock,
+				MethodUnlock,
+				MethodPropPatch:
+				c.AbortWithError(http.StatusForbidden, fmt.Errorf(model.Conf.Language(34)))
+				return
+			}
+		}
+		handler.ServeHTTP(c.Writer, c.Request)
+	})
+}
+
+func serveCalDAV(ginServer *gin.Engine) {
+	// REF: https://github.com/emersion/hydroxide/blob/master/carddav/carddav.go
+	handler := caldav.Handler{
+		Backend: &model.CalDavBackend{},
+		Prefix:  model.CalDavPrincipalsPath,
+	}
+
+	ginServer.Match(CalDavMethods, "/.well-known/caldav", func(c *gin.Context) {
+		// logging.LogDebugf("CalDAV -> [%s] %s", c.Request.Method, c.Request.URL.String())
+		handler.ServeHTTP(c.Writer, c.Request)
+	})
+
+	ginGroup := ginServer.Group(model.CalDavPrefixPath, model.CheckAuth, model.CheckAdminRole)
+	ginGroup.Match(CalDavMethods, "/*path", func(c *gin.Context) {
+		// logging.LogDebugf("CalDAV -> [%s] %s", c.Request.Method, c.Request.URL.String())
+		if util.ReadOnly {
+			switch c.Request.Method {
+			case http.MethodPost,
+				http.MethodPut,
+				http.MethodDelete,
+				MethodMkCol,
+				MethodCopy,
+				MethodMove,
+				MethodLock,
+				MethodUnlock,
+				MethodPropPatch:
+				c.AbortWithError(http.StatusForbidden, fmt.Errorf(model.Conf.Language(34)))
+				return
+			}
+		}
+		handler.ServeHTTP(c.Writer, c.Request)
+		// logging.LogDebugf("CalDAV <- [%s] %v", c.Request.Method, c.Writer.Status())
+	})
+}
+
+func serveCardDAV(ginServer *gin.Engine) {
+	// REF: https://github.com/emersion/hydroxide/blob/master/carddav/carddav.go
+	handler := carddav.Handler{
+		Backend: &model.CardDavBackend{},
+		Prefix:  model.CardDavPrincipalsPath,
+	}
+
+	ginServer.Match(CardDavMethods, "/.well-known/carddav", func(c *gin.Context) {
+		// logging.LogDebugf("CardDAV [/.well-known/carddav]")
+		handler.ServeHTTP(c.Writer, c.Request)
+	})
+
+	ginGroup := ginServer.Group(model.CardDavPrefixPath, model.CheckAuth, model.CheckAdminRole)
+	ginGroup.Match(CardDavMethods, "/*path", func(c *gin.Context) {
+		if util.ReadOnly {
+			switch c.Request.Method {
+			case http.MethodPost,
+				http.MethodPut,
+				http.MethodDelete,
+				MethodMkCol,
+				MethodCopy,
+				MethodMove,
+				MethodLock,
+				MethodUnlock,
+				MethodPropPatch:
+				c.AbortWithError(http.StatusForbidden, fmt.Errorf(model.Conf.Language(34)))
+				return
+			}
+		}
+		// TODO: Can't handle Thunderbird's PROPFIND request with prop <current-user-privilege-set/>
+		handler.ServeHTTP(c.Writer, c.Request)
+		// logging.LogDebugf("CardDAV <- [%s] %v", c.Request.Method, c.Writer.Status())
+	})
+}
+
 func shortReqMsg(msg []byte) []byte {
 	s := gulu.Str.FromBytes(msg)
 	max := 128
@@ -603,15 +793,39 @@ func shortReqMsg(msg []byte) []byte {
 }
 
 func corsMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
+	allowMethods := strings.Join(HttpMethods, ", ")
+	allowWebDavMethods := strings.Join(WebDavMethods, ", ")
+	allowCalDavMethods := strings.Join(CalDavMethods, ", ")
+	allowCardDavMethods := strings.Join(CardDavMethods, ", ")
 
+	return func(c *gin.Context) {
 		c.Header("Access-Control-Allow-Origin", "*")
 		c.Header("Access-Control-Allow-Credentials", "true")
 		c.Header("Access-Control-Allow-Headers", "origin, Content-Length, Content-Type, Authorization")
-		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS")
 		c.Header("Access-Control-Allow-Private-Network", "true")
 
-		if c.Request.Method == "OPTIONS" {
+		if strings.HasPrefix(c.Request.RequestURI, "/webdav") {
+			c.Header("Access-Control-Allow-Methods", allowWebDavMethods)
+			c.Next()
+			return
+		}
+
+		if strings.HasPrefix(c.Request.RequestURI, "/caldav") {
+			c.Header("Access-Control-Allow-Methods", allowCalDavMethods)
+			c.Next()
+			return
+		}
+
+		if strings.HasPrefix(c.Request.RequestURI, "/carddav") {
+			c.Header("Access-Control-Allow-Methods", allowCardDavMethods)
+			c.Next()
+			return
+		}
+
+		c.Header("Access-Control-Allow-Methods", allowMethods)
+
+		switch c.Request.Method {
+		case http.MethodOptions:
 			c.Header("Access-Control-Max-Age", "600")
 			c.AbortWithStatus(204)
 			return

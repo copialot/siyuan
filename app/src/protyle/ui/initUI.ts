@@ -6,6 +6,12 @@ import {isMac} from "../util/compatibility";
 import {setInlineStyle} from "../../util/assets";
 import {fetchPost} from "../../util/fetch";
 import {lineNumberRender} from "../render/highlightRender";
+import {hideMessage, showMessage} from "../../dialog/message";
+import {genUUID} from "../../util/genID";
+import {getContenteditableElement, getLastBlock} from "../wysiwyg/getBlock";
+import {genEmptyElement} from "../../block/util";
+import {transaction} from "../wysiwyg/transaction";
+import {focusByRange} from "../util/selection";
 
 export const initUI = (protyle: IProtyle) => {
     protyle.contentElement = document.createElement("div");
@@ -42,12 +48,15 @@ export const initUI = (protyle: IProtyle) => {
     protyle.element.appendChild(protyle.toolbar.element);
     protyle.element.appendChild(protyle.toolbar.subElement);
 
+    protyle.element.append(protyle.highlight.styleElement);
+
     addLoading(protyle);
 
     setEditMode(protyle, protyle.options.mode);
     document.execCommand("DefaultParagraphSeparator", false, "p");
 
     let wheelTimeout: number;
+    const wheelId = genUUID();
     const isMacOS = isMac();
     protyle.contentElement.addEventListener("mousewheel", (event: WheelEvent) => {
         if (!window.siyuan.config.editor.fontSizeScrollZoom || (isMacOS && !event.metaKey) || (!isMacOS && !event.ctrlKey) || event.deltaX !== 0) {
@@ -70,15 +79,66 @@ export const initUI = (protyle: IProtyle) => {
         }
         setInlineStyle();
         clearTimeout(wheelTimeout);
+        showMessage(`${window.siyuan.languages.fontSize} ${window.siyuan.config.editor.fontSize}px<span class="fn__space"></span>
+<button class="b3-button b3-button--small b3-button--white">${window.siyuan.languages.reset} 16px</button>`, undefined, undefined, wheelId);
         wheelTimeout = window.setTimeout(() => {
             fetchPost("/api/setting/setEditor", window.siyuan.config.editor);
-            if (window.siyuan.config.editor.codeSyntaxHighlightLineNum) {
-                protyle.wysiwyg.element.querySelectorAll(".code-block .protyle-linenumber").forEach((block: HTMLElement) => {
-                    lineNumberRender(block);
+            protyle.wysiwyg.element.querySelectorAll(".code-block .protyle-linenumber__rows").forEach((block: HTMLElement) => {
+                lineNumberRender(block.parentElement);
+            });
+            document.querySelector(`#message [data-id="${wheelId}"] button`)?.addEventListener("click", () => {
+                window.siyuan.config.editor.fontSize = 16;
+                setInlineStyle();
+                fetchPost("/api/setting/setEditor", window.siyuan.config.editor);
+                hideMessage(wheelId);
+                protyle.wysiwyg.element.querySelectorAll(".code-block .protyle-linenumber__rows").forEach((block: HTMLElement) => {
+                    lineNumberRender(block.parentElement);
                 });
-            }
+            });
         }, Constants.TIMEOUT_LOAD);
     }, {passive: false});
+    protyle.contentElement.addEventListener("click", (event: MouseEvent & { target: HTMLElement }) => {
+        // wysiwyg 元素下方点击无效果 https://github.com/siyuan-note/siyuan/issues/12009
+        if (protyle.disabled ||
+            (!event.target.classList.contains("protyle-content") && !event.target.classList.contains("protyle-wysiwyg"))) {
+            return;
+        }
+        const lastRect = protyle.wysiwyg.element.lastElementChild.getBoundingClientRect();
+        const range = document.createRange();
+        if (event.y > lastRect.bottom) {
+            const lastEditElement = getContenteditableElement(getLastBlock(protyle.wysiwyg.element.lastElementChild));
+            if (!lastEditElement ||
+                (protyle.wysiwyg.element.lastElementChild.getAttribute("data-type") !== "NodeParagraph" && protyle.wysiwyg.element.getAttribute("data-doc-type") !== "NodeListItem") ||
+                (protyle.wysiwyg.element.lastElementChild.getAttribute("data-type") === "NodeParagraph" && getContenteditableElement(lastEditElement).innerHTML !== "")) {
+                const emptyElement = genEmptyElement(false, false);
+                protyle.wysiwyg.element.insertAdjacentElement("beforeend", emptyElement);
+                transaction(protyle, [{
+                    action: "insert",
+                    data: emptyElement.outerHTML,
+                    id: emptyElement.getAttribute("data-node-id"),
+                    previousID: emptyElement.previousElementSibling.getAttribute("data-node-id"),
+                    parentID: protyle.block.parentID
+                }], [{
+                    action: "delete",
+                    id: emptyElement.getAttribute("data-node-id")
+                }]);
+                const emptyEditElement = getContenteditableElement(emptyElement) as HTMLInputElement;
+                range.selectNodeContents(emptyEditElement);
+                range.collapse(true);
+                focusByRange(range);
+                // 需等待 range 更新再次进行渲染
+                if (protyle.options.render.breadcrumb) {
+                    setTimeout(() => {
+                        protyle.breadcrumb.render(protyle);
+                    }, Constants.TIMEOUT_TRANSITION);
+                }
+            } else if (lastEditElement) {
+                range.selectNodeContents(lastEditElement);
+                range.collapse(false);
+                focusByRange(range);
+            }
+        }
+    });
 };
 
 export const addLoading = (protyle: IProtyle, msg?: string) => {
@@ -120,16 +180,13 @@ export const setPadding = (protyle: IProtyle) => {
         protyle.background.element.querySelector(".protyle-background__ia").setAttribute("style", `margin-left:${left}px;margin-right:${right}px`);
     }
     if (protyle.options.render.title) {
-        /// #if MOBILE
+        // pc 端 文档名 attr 过长和添加标签等按钮重合
         protyle.title.element.style.margin = `16px ${right}px 0 ${left}px`;
-        /// #else
-        protyle.title.element.style.margin = `5px ${right}px 0 ${left}px`;
-        /// #endif
     }
     if (window.siyuan.config.editor.displayBookmarkIcon) {
         const editorAttrElement = document.getElementById("editorAttr");
         if (editorAttrElement) {
-            editorAttrElement.innerHTML = `.protyle-wysiwyg--attr .b3-tooltips:after { max-width: ${protyle.wysiwyg.element.clientWidth - left - right}px; }`;
+            editorAttrElement.innerHTML = `.protyle-wysiwyg--attr .b3-tooltips::after { max-width: ${protyle.wysiwyg.element.clientWidth - left - right}px; }`;
         }
     }
     const oldWidth = protyle.wysiwyg.element.getAttribute("data-realwidth");

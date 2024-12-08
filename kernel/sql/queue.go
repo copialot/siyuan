@@ -36,7 +36,6 @@ var (
 	operationQueue []*dbQueueOperation
 	dbQueueLock    = sync.Mutex{}
 	txLock         = sync.Mutex{}
-	isWriting      = false
 )
 
 type dbQueueOperation struct {
@@ -58,38 +57,6 @@ func FlushTxJob() {
 	task.AppendTask(task.DatabaseIndexCommit, FlushQueue)
 }
 
-func WaitForWritingDatabase() {
-	var printLog bool
-	var lastPrintLog bool
-	for i := 0; isWritingDatabase(); i++ {
-		time.Sleep(50 * time.Millisecond)
-		if 200 < i && !printLog { // 10s 后打日志
-			logging.LogWarnf("database is writing: \n%s", logging.ShortStack())
-			printLog = true
-		}
-		if 1200 < i && !lastPrintLog { // 60s 后打日志
-			logging.LogWarnf("database is still writing")
-			lastPrintLog = true
-		}
-	}
-}
-
-func isWritingDatabase() bool {
-	time.Sleep(util.SQLFlushInterval + 50*time.Millisecond)
-	dbQueueLock.Lock()
-	defer dbQueueLock.Unlock()
-	if 0 < len(operationQueue) || isWriting {
-		return true
-	}
-	return false
-}
-
-func IsEmptyQueue() bool {
-	dbQueueLock.Lock()
-	defer dbQueueLock.Unlock()
-	return 1 > len(operationQueue)
-}
-
 func ClearQueue() {
 	dbQueueLock.Lock()
 	defer dbQueueLock.Unlock()
@@ -104,11 +71,7 @@ func FlushQueue() {
 	}
 
 	txLock.Lock()
-	isWriting = true
-	defer func() {
-		isWriting = false
-		txLock.Unlock()
-	}()
+	defer txLock.Unlock()
 
 	start := time.Now()
 
@@ -130,20 +93,20 @@ func FlushQueue() {
 		}
 
 		tx, err := beginTx()
-		if nil != err {
+		if err != nil {
 			return
 		}
 
 		groupOpsCurrent[op.action]++
 		context["current"] = groupOpsCurrent[op.action]
 		context["total"] = groupOpsTotal[op.action]
-		if err = execOp(op, tx, context); nil != err {
+		if err = execOp(op, tx, context); err != nil {
 			tx.Rollback()
 			logging.LogErrorf("queue operation [%s] failed: %s", op.action, err)
 			continue
 		}
 
-		if err = commitTx(tx); nil != err {
+		if err = commitTx(tx); err != nil {
 			logging.LogErrorf("commit tx failed: %s", err)
 			continue
 		}
@@ -181,13 +144,13 @@ func execOp(op *dbQueueOperation, tx *sql.Tx, context map[string]interface{}) (e
 	case "delete_ids":
 		err = batchDeleteByRootIDs(tx, op.removeTreeIDs, context)
 	case "rename":
-		err = batchUpdateHPath(tx, op.renameTree.ID, op.renameTree.HPath, context)
-		if nil != err {
+		err = batchUpdateHPath(tx, op.renameTree, context)
+		if err != nil {
 			break
 		}
 		err = updateRootContent(tx, path.Base(op.renameTree.HPath), op.renameTree.Root.IALAttr("updated"), op.renameTree.ID)
 	case "rename_sub_tree":
-		err = batchUpdateHPath(tx, op.renameTree.ID, op.renameTree.HPath, context)
+		err = batchUpdatePath(tx, op.renameTree, context)
 	case "delete_box":
 		err = deleteByBoxTx(tx, op.box)
 	case "delete_box_refs":

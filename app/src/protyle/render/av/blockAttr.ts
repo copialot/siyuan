@@ -1,13 +1,20 @@
 import {fetchPost} from "../../../util/fetch";
 import {addCol, getColIconByType} from "./col";
-import {escapeAttr} from "../../../util/escape";
+import {escapeAriaLabel, escapeAttr, escapeHtml} from "../../../util/escape";
 import * as dayjs from "dayjs";
-import {popTextCell} from "./cell";
-import {hasClosestBlock, hasClosestByClassName} from "../../util/hasClosest";
+import {popTextCell, updateCellsValue} from "./cell";
+import {hasClosestBlock, hasClosestByAttribute, hasClosestByClassName} from "../../util/hasClosest";
 import {unicode2Emoji} from "../../../emoji";
 import {transaction} from "../../wysiwyg/transaction";
 import {openMenuPanel} from "./openMenuPanel";
 import {uploadFiles} from "../../upload";
+import {openLink} from "../../../editor/openLink";
+import {dragUpload, editAssetItem} from "./asset";
+import {previewImage} from "../../preview/image";
+/// #if !BROWSER
+import {webUtils} from "electron";
+/// #endif
+import {isBrowser} from "../../../util/functions";
 
 const genAVRollupHTML = (value: IAVCellValue) => {
     let html = "";
@@ -53,31 +60,35 @@ export const genAVValueHTML = (value: IAVCellValue) => {
     let html = "";
     switch (value.type) {
         case "block":
-            html = `<div class="fn__flex-1">${value.block.content}</div>`;
+            html = `<div class="fn__flex-1" placeholder="${window.siyuan.languages.empty}">${value.block.content}</div>`;
             break;
         case "text":
-            html = `<textarea style="resize: vertical" rows="${value.text.content.split("\n").length}" class="b3-text-field b3-text-field--text fn__flex-1">${value.text.content}</textarea>`;
+            html = `<textarea style="resize: vertical" rows="${value.text.content.split("\n").length}" class="b3-text-field b3-text-field--text fn__flex-1" placeholder="${window.siyuan.languages.empty}">${value.text.content}</textarea>`;
             break;
         case "number":
-            html = `<input value="${value.number.content || ""}" type="number" class="b3-text-field b3-text-field--text fn__flex-1">`;
+            html = `<input value="${value.number.isNotEmpty ? value.number.content : ""}" type="number" class="b3-text-field b3-text-field--text fn__flex-1" placeholder="${window.siyuan.languages.empty}">
+<span class="fn__space"></span><span class="fn__flex-center ft__on-surface b3-tooltips__w b3-tooltips" aria-label="${window.siyuan.languages.format}">${value.number.formattedContent}</span><span class="fn__space"></span>`;
             break;
         case "mSelect":
         case "select":
-            value.mSelect?.forEach(item => {
-                html += `<span class="b3-chip b3-chip--middle" style="background-color:var(--b3-font-background${item.color});color:var(--b3-font-color${item.color})">${item.content}</span>`;
+            value.mSelect?.forEach((item, index) => {
+                if (value.type === "select" && index > 0) {
+                    return;
+                }
+                html += `<span class="b3-chip b3-chip--middle" style="background-color:var(--b3-font-background${item.color});color:var(--b3-font-color${item.color})">${escapeHtml(item.content)}</span>`;
             });
             break;
         case "mAsset":
             value.mAsset?.forEach(item => {
                 if (item.type === "image") {
-                    html += `<img class="av__cellassetimg" src="${item.content}">`;
+                    html += `<img class="av__cellassetimg ariaLabel" aria-label="${item.content}" src="${item.content}">`;
                 } else {
-                    html += `<span class="b3-chip b3-chip--middle av__celltext--url" data-url="${item.content}">${item.name}</span>`;
+                    html += `<span class="b3-chip b3-chip--middle av__celltext--url ariaLabel" aria-label="${escapeAttr(item.content)}" data-name="${escapeAttr(item.name)}" data-url="${escapeAttr(item.content)}">${item.name || item.content}</span>`;
                 }
             });
             break;
         case "date":
-            html = `<span class="av__celltext" data-value='${JSON.stringify(value[value.type])}'>`;
+            html = `<span class="av__celltext" data-value='${JSON.stringify(value[value.type])}' placeholder="${window.siyuan.languages.empty}">`;
             if (value[value.type] && value[value.type].isNotEmpty) {
                 html += dayjs(value[value.type].content).format(value[value.type].isNotTime ? "YYYY-MM-DD" : "YYYY-MM-DD HH:mm");
             }
@@ -93,12 +104,12 @@ export const genAVValueHTML = (value: IAVCellValue) => {
             }
             break;
         case "url":
-            html = `<input value="${value.url.content}" class="b3-text-field b3-text-field--text fn__flex-1">
+            html = `<input value="${value.url.content}" class="b3-text-field b3-text-field--text fn__flex-1" placeholder="${window.siyuan.languages.empty}">
 <span class="fn__space"></span>
 <a href="${value.url.content}" target="_blank" aria-label="${window.siyuan.languages.openBy}" class="block__icon block__icon--show fn__flex-center b3-tooltips__w b3-tooltips"><svg><use xlink:href="#iconLink"></use></svg></a>`;
             break;
         case "phone":
-            html = `<input value="${value.phone.content}" class="b3-text-field b3-text-field--text fn__flex-1">
+            html = `<input value="${value.phone.content}" class="b3-text-field b3-text-field--text fn__flex-1" placeholder="${window.siyuan.languages.empty}">
 <span class="fn__space"></span>
 <a href="tel:${value.phone.content}" target="_blank" aria-label="${window.siyuan.languages.openBy}" class="block__icon block__icon--show fn__flex-center b3-tooltips__w b3-tooltips"><svg><use xlink:href="#iconPhone"></use></svg></a>`;
             break;
@@ -106,10 +117,10 @@ export const genAVValueHTML = (value: IAVCellValue) => {
             html = `<svg class="av__checkbox"><use xlink:href="#icon${value.checkbox.checked ? "Check" : "Uncheck"}"></use></svg>`;
             break;
         case "template":
-            html = `<div class="fn__flex-1">${value.template.content}</div>`;
+            html = `<div class="fn__flex-1" placeholder="${window.siyuan.languages.empty}">${value.template.content}</div>`;
             break;
         case "email":
-            html = `<input value="${value.email.content}" class="b3-text-field b3-text-field--text fn__flex-1">
+            html = `<input value="${value.email.content}" class="b3-text-field b3-text-field--text fn__flex-1" placeholder="${window.siyuan.languages.empty}">
 <span class="fn__space"></span>
 <a href="mailto:${value.email.content}" target="_blank" aria-label="${window.siyuan.languages.openBy}" class="block__icon block__icon--show fn__flex-center b3-tooltips__w b3-tooltips"><svg><use xlink:href="#iconEmail"></use></svg></a>`;
             break;
@@ -149,6 +160,7 @@ export const renderAVAttribute = (element: HTMLElement, id: string, protyle: IPr
                 key: {
                     type: TAVCol,
                     name: string,
+                    desc: string,
                     icon: string,
                     id: string,
                     options?: {
@@ -175,22 +187,19 @@ export const renderAVAttribute = (element: HTMLElement, id: string, protyle: IPr
             table.keyValues?.forEach(item => {
                 innerHTML += `<div class="block__icons av__row" data-id="${id}" data-col-id="${item.key.id}">
     <div class="block__icon" draggable="true"><svg><use xlink:href="#iconDrag"></use></svg></div>
-    <div class="block__logo ariaLabel fn__pointer" data-type="editCol" data-position="parentW" aria-label="${escapeAttr(item.key.name)}">
+    <div class="block__logo ariaLabel fn__pointer" data-type="editCol" data-position="parentW" aria-label="${escapeAriaLabel(item.key.name)}<div class='ft__on-surface'>${escapeAriaLabel(item.key.desc)}</div>">
         ${item.key.icon ? unicode2Emoji(item.key.icon, "block__logoicon", true) : `<svg class="block__logoicon"><use xlink:href="#${getColIconByType(item.key.type)}"></use></svg>`}
-        <span>${item.key.name}</span>
+        <span>${escapeHtml(item.key.name)}</span>
     </div>
     <div data-av-id="${table.avID}" data-col-id="${item.values[0].keyID}" data-block-id="${item.values[0].blockID}" data-id="${item.values[0].id}" data-type="${item.values[0].type}" 
-data-options="${item.key?.options ? escapeAttr(JSON.stringify(item.key.options)) : "[]"}"
-class="fn__flex-1 fn__flex${["url", "text", "number", "email", "phone", "block"].includes(item.values[0].type) ? "" : " custom-attr__avvalue"}">
-        ${genAVValueHTML(item.values[0])}
-    </div>
+data-options="${item.key?.options ? escapeAttr(JSON.stringify(item.key.options)) : "[]"}" 
+${["text", "number", "date", "url", "phone", "template", "email"].includes(item.values[0].type) ? "" : `placeholder="${window.siyuan.languages.empty}"`}  
+class="fn__flex-1 fn__flex${["url", "text", "number", "email", "phone"].includes(item.values[0].type) ? "" : " custom-attr__avvalue"}${["block", "created", "updated"].includes(item.values[0].type) ? " custom-attr__avvalue--readonly" : ""}">${genAVValueHTML(item.values[0])}</div>
 </div>`;
             });
             innerHTML += `<div class="fn__hr"></div>
-<div class="fn__flex">
-    <div class="fn__space"></div><div class="fn__space"></div>
-    <button data-type="addColumn" class="b3-button b3-button--outline"><svg><use xlink:href="#iconAdd"></use></svg>${window.siyuan.languages.addAttr}</button>
-</div><div class="fn__hr--b"></div>`;
+<button data-type="addColumn" class="b3-button b3-button--cancel"><svg><use xlink:href="#iconAdd"></use></svg>${window.siyuan.languages.newCol}</button>
+<div class="fn__hr--b"></div>`;
             html += `<div data-av-id="${table.avID}" data-node-id="${id}" data-type="NodeAttributeView">${innerHTML}</div>`;
 
             if (element.innerHTML) {
@@ -216,8 +225,13 @@ class="fn__flex-1 fn__flex${["url", "text", "number", "email", "phone", "block"]
                     ghostElement.remove();
                 });
             });
-            element.addEventListener("drop", () => {
-                window.siyuan.dragElement.style.opacity = "";
+            element.addEventListener("drop", (event) => {
+                counter = 0;
+                if (protyle.disabled) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    return;
+                }
                 const targetElement = element.querySelector(".dragover__bottom, .dragover__top") as HTMLElement;
                 if (targetElement && dragBlockElement) {
                     const isBottom = targetElement.classList.contains("dragover__bottom");
@@ -242,12 +256,38 @@ class="fn__flex-1 fn__flex${["url", "text", "number", "email", "phone", "block"]
                         }
                     }
                     targetElement.classList.remove("dragover__bottom", "dragover__top");
+                } else if (!window.siyuan.dragElement && event.dataTransfer.types[0] === "Files") {
+                    const cellElement = element.querySelector(".custom-attr__avvalue--active") as HTMLElement;
+                    if (cellElement) {
+                        if (event.dataTransfer.types[0] === "Files" && !isBrowser()) {
+                            const files: string[] = [];
+                            for (let i = 0; i < event.dataTransfer.files.length; i++) {
+                                files.push(webUtils.getPathForFile(event.dataTransfer.files[i]));
+                            }
+                            dragUpload(files, protyle, cellElement);
+                        }
+                    }
                 }
-                window.siyuan.dragElement = null;
+                if (window.siyuan.dragElement) {
+                    window.siyuan.dragElement.style.opacity = "";
+                    window.siyuan.dragElement = undefined;
+                }
             });
             element.addEventListener("dragover", (event: DragEvent) => {
                 const target = event.target as HTMLElement;
-                let targetElement = hasClosestByClassName(target, "av__row");
+                let targetElement: HTMLElement | false;
+                if (event.dataTransfer.types.includes("Files")) {
+                    element.querySelectorAll(".custom-attr__avvalue--active").forEach((item: HTMLElement) => {
+                        item.classList.remove("custom-attr__avvalue--active");
+                    });
+                    targetElement = hasClosestByClassName(target, "custom-attr__avvalue");
+                    if (targetElement && targetElement.getAttribute("data-type") === "mAsset") {
+                        targetElement.classList.add("custom-attr__avvalue--active");
+                        event.preventDefault();
+                    }
+                    return;
+                }
+                targetElement = hasClosestByClassName(target, "av__row");
                 if (!targetElement) {
                     targetElement = hasClosestByClassName(document.elementFromPoint(event.clientX, event.clientY - 1), "av__row");
                 }
@@ -260,17 +300,27 @@ class="fn__flex-1 fn__flex${["url", "text", "number", "email", "phone", "block"]
                 }
                 event.preventDefault();
                 const nodeRect = targetElement.getBoundingClientRect();
-                targetElement.classList.remove("dragover__bottom", "dragover__top");
+                element.querySelectorAll(".dragover__bottom, .dragover__top").forEach((item: HTMLElement) => {
+                    item.classList.remove("dragover__bottom", "dragover__top");
+                });
                 if (event.clientY > nodeRect.top + nodeRect.height / 2) {
                     targetElement.classList.add("dragover__bottom");
                 } else {
                     targetElement.classList.add("dragover__top");
                 }
             });
+            let counter = 0;
             element.addEventListener("dragleave", () => {
-                element.querySelectorAll(".dragover__bottom, .dragover__top").forEach((item: HTMLElement) => {
-                    item.classList.remove("dragover__bottom", "dragover__top");
-                });
+                counter--;
+                if (counter === 0) {
+                    element.querySelectorAll(".dragover__bottom, .dragover__top").forEach((item: HTMLElement) => {
+                        item.classList.remove("dragover__bottom", "dragover__top");
+                    });
+                }
+            });
+            element.addEventListener("dragenter", (event) => {
+                event.preventDefault();
+                counter++;
             });
             element.addEventListener("dragend", () => {
                 if (window.siyuan.dragElement) {
@@ -280,8 +330,19 @@ class="fn__flex-1 fn__flex${["url", "text", "number", "email", "phone", "block"]
             });
             element.addEventListener("paste", (event) => {
                 const files = event.clipboardData.files;
-                if (document.querySelector(".av__panel .b3-form__upload") && files && files.length > 0) {
-                    uploadFiles(protyle, files);
+                if (document.querySelector(".av__panel .b3-form__upload")) {
+                    if (files && files.length > 0) {
+                        uploadFiles(protyle, files);
+                    } else {
+                        const textPlain = event.clipboardData.getData("text/plain");
+                        const target = event.target as HTMLElement;
+                        const blockElement = hasClosestBlock(target);
+                        const cellsElement = hasClosestByAttribute(target, "data-type", "mAsset");
+                        if (blockElement && cellsElement && textPlain) {
+                            updateCellsValue(protyle, blockElement as HTMLElement, textPlain, [cellsElement], undefined, protyle.lute.Md2BlockDOM(textPlain));
+                            document.querySelector(".av__panel")?.remove();
+                        }
+                    }
                 }
             });
             element.addEventListener("click", (event) => {
@@ -295,13 +356,17 @@ class="fn__flex-1 fn__flex${["url", "text", "number", "email", "phone", "block"]
         element.querySelectorAll(".b3-text-field--text").forEach((item: HTMLInputElement) => {
             item.addEventListener("change", () => {
                 let value;
-                if (["url", "text", "email", "phone"].includes(item.parentElement.dataset.type)) {
+                const type = item.parentElement.dataset.type;
+                if (["url", "text", "email", "phone"].includes(type)) {
                     value = {
-                        [item.parentElement.dataset.type]: {
+                        [type]: {
                             content: item.value
                         }
                     };
-                } else if (item.parentElement.dataset.type === "number") {
+                    if (type !== "text") {
+                        item.parentElement.querySelector("a").setAttribute("href", (type === "url" ? "" : (type === "email" ? "mailto:" : "tel:")) + item.value);
+                    }
+                } else if (type === "number") {
                     if ("undefined" === item.value || !item.value) {
                         value = {
                             number: {
@@ -322,8 +387,11 @@ class="fn__flex-1 fn__flex${["url", "text", "number", "email", "phone", "block"]
                     avID: item.parentElement.dataset.avId,
                     keyID: item.parentElement.dataset.colId,
                     rowID: item.parentElement.dataset.blockId,
-                    cellID: item.parentElement.dataset.id,
                     value
+                }, (setResponse) => {
+                    if (type === "number") {
+                        item.parentElement.querySelector(".fn__flex-center").textContent = setResponse.data.value.number.formattedContent;
+                    }
                 });
             });
         });
@@ -333,7 +401,7 @@ class="fn__flex-1 fn__flex${["url", "text", "number", "email", "phone", "block"]
     });
 };
 
-const openEdit = (protyle: IProtyle, element:HTMLElement, event: MouseEvent) => {
+const openEdit = (protyle: IProtyle, element: HTMLElement, event: MouseEvent) => {
     let target = event.target as HTMLElement;
     const blockElement = hasClosestBlock(target);
     if (!blockElement) {
@@ -341,7 +409,36 @@ const openEdit = (protyle: IProtyle, element:HTMLElement, event: MouseEvent) => 
     }
     while (target && !element.isSameNode(target)) {
         const type = target.getAttribute("data-type");
-        if (type === "date") {
+        if (target.classList.contains("av__celltext--url") || target.classList.contains("av__cellassetimg")) {
+            if (event.type === "contextmenu" || (!target.dataset.url && target.tagName !== "IMG")) {
+                let index = 0;
+                Array.from(target.parentElement.children).find((item, i) => {
+                    if (item.isSameNode(target)) {
+                        index = i;
+                        return true;
+                    }
+                });
+                editAssetItem({
+                    protyle,
+                    cellElements: [target.parentElement],
+                    blockElement: hasClosestBlock(target) as HTMLElement,
+                    content: target.tagName === "IMG" ? target.getAttribute("src") : target.getAttribute("data-url"),
+                    type: target.tagName === "IMG" ? "image" : "file",
+                    name: target.tagName === "IMG" ? "" : target.getAttribute("data-name"),
+                    index,
+                    rect: target.getBoundingClientRect()
+                });
+            } else {
+                if (target.tagName === "IMG") {
+                    previewImage(target.getAttribute("src"));
+                } else {
+                    openLink(protyle, target.dataset.url, event, event.ctrlKey || event.metaKey);
+                }
+            }
+            event.stopPropagation();
+            event.preventDefault();
+            break;
+        } else if (type === "date") {
             popTextCell(protyle, [target], "date");
             event.stopPropagation();
             event.preventDefault();

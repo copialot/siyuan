@@ -1,26 +1,38 @@
 import {openMobileFileById} from "../editor";
-import {processSync, progressLoading, progressStatus, reloadSync, transactionError} from "../../dialog/processSystem";
-import {Constants} from "../../constants";
+import {
+    processSync,
+    progressLoading,
+    progressStatus,
+    reloadSync, setDefRefCount, setRefDynamicText,
+    transactionError
+} from "../../dialog/processSystem";
 import {App} from "../../index";
 import {reloadPlugin} from "../../plugin/loader";
-import {fetchPost} from "../../util/fetch";
+import {reloadEmoji} from "../../emoji";
 
 export const onMessage = (app: App, data: IWebSocketData) => {
     if (data) {
         switch (data.cmd) {
+            case "setDefRefCount":
+                setDefRefCount(data.data);
+                break;
+            case "setRefDynamicText":
+                setRefDynamicText(data.data);
+                break;
             case "reloadPlugin":
                 reloadPlugin(app, data.data);
                 break;
             case "reloadEmojiConf":
-                fetchPost("/api/system/getEmojiConf", {}, response => {
-                    window.siyuan.emojis = response.data as IEmoji[];
-                });
+                reloadEmoji();
                 break;
             case "syncMergeResult":
                 reloadSync(app, data.data);
                 break;
             case "setConf":
                 window.siyuan.config = data.data;
+                break;
+            case "reloaddoc":
+                reloadSync(this, {upsertRootIDs: [data.data], removeRootIDs: []}, false, false, true);
                 break;
             case "readonly":
                 window.siyuan.config.editor.readOnly = data.data;
@@ -35,7 +47,7 @@ export const onMessage = (app: App, data: IWebSocketData) => {
                 }
                 break;
             case "openFileById":
-                openMobileFileById(app, data.data.id, [Constants.CB_GET_HL]);
+                openMobileFileById(app, data.data.id);
                 break;
             case"txerr":
                 transactionError();

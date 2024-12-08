@@ -6,7 +6,8 @@
 		"icon": "1f5c3-fe0f",
 		"id": "20240208172514-9dsv6na",
 		"title": "Database",
-		"updated": "20240208173738"
+		"type": "doc",
+		"updated": "20240818175612"
 	},
 	"Children": [
 		{
@@ -121,7 +122,7 @@
 							"Children": [
 								{
 									"Type": "NodeText",
-									"Data": "Add different types of attributes"
+									"Data": "Add different types of fields"
 								}
 							]
 						}
@@ -149,7 +150,7 @@
 							"Children": [
 								{
 									"Type": "NodeText",
-									"Data": "Add row"
+									"Data": "Add entry"
 								}
 							]
 						},
@@ -184,7 +185,7 @@
 											"Children": [
 												{
 													"Type": "NodeText",
-													"Data": "Non-content block: Rows added directly to the table, not bound to any content block"
+													"Data": "Non-content block: Entries added directly to the table, not bound to any content block"
 												}
 											]
 										}
@@ -212,7 +213,7 @@
 											"Children": [
 												{
 													"Type": "NodeText",
-													"Data": "Content block: Rows added by dragging to the table, or rows added through the block menu "
+													"Data": "Content block: Entries added by dragging to the table, or entries added through the block menu "
 												},
 												{
 													"Type": "NodeTextMark",
@@ -450,7 +451,7 @@
 			"HeadingLevel": 2,
 			"Properties": {
 				"id": "20240208173416-t51ome2",
-				"updated": "20240208173416"
+				"updated": "20240818174919"
 			},
 			"Children": [
 				{
@@ -469,7 +470,7 @@
 			"Children": [
 				{
 					"Type": "NodeText",
-					"Data": "Templates can access, calculate and render the values of other attributes in the same piece of data through the syntax introduced in "
+					"Data": "Templates can access, calculate and render the values of other fields in the same piece of data through the syntax introduced in "
 				},
 				{
 					"Type": "NodeTextMark",
@@ -520,7 +521,7 @@
 								{
 									"Type": "NodeTextMark",
 									"TextMarkType": "code",
-									"TextMarkTextContent": ".action{ .attribute}"
+									"TextMarkTextContent": ".action{ .field }"
 								},
 								{
 									"Type": "NodeText",
@@ -597,7 +598,7 @@
 				},
 				{
 					"Type": "NodeText",
-					"Data": "​ attribute demonstrates the sum of "
+					"Data": "​ field demonstrates the sum of "
 				},
 				{
 					"Type": "NodeTextMark",
@@ -628,6 +629,49 @@
 			},
 			"AttributeViewID": "20240208173528-oq4elsj",
 			"AttributeViewType": "table"
+		},
+		{
+			"ID": "20240818174922-r0eubvc",
+			"Type": "NodeHeading",
+			"HeadingLevel": 2,
+			"Properties": {
+				"id": "20240818174922-r0eubvc",
+				"updated": "20240818175612"
+			},
+			"Children": [
+				{
+					"Type": "NodeTextMark",
+					"TextMarkType": "tag",
+					"TextMarkTextContent": "Note"
+				},
+				{
+					"Type": "NodeText",
+					"Data": "​"
+				}
+			]
+		},
+		{
+			"ID": "20240818175612-1oygtbw",
+			"Type": "NodeParagraph",
+			"Properties": {
+				"id": "20240818175612-1oygtbw",
+				"updated": "20240818175612"
+			},
+			"Children": [
+				{
+					"Type": "NodeText",
+					"Data": "If you need to wrap a line in a database cell, use "
+				},
+				{
+					"Type": "NodeTextMark",
+					"TextMarkType": "kbd",
+					"TextMarkTextContent": "Shift+Enter"
+				},
+				{
+					"Type": "NodeText",
+					"Data": "​ ."
+				}
+			]
 		}
 	]
 }

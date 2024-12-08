@@ -130,15 +130,19 @@ func resetTree(tree *parse.Tree, titleSuffix string, removeAvBinding bool) {
 func pagedPaths(localPath string, pageSize int) (ret map[int][]string) {
 	ret = map[int][]string{}
 	page := 1
-	filelock.Walk(localPath, func(path string, info fs.FileInfo, err error) error {
-		if info.IsDir() {
-			if strings.HasPrefix(info.Name(), ".") {
+	filelock.Walk(localPath, func(path string, d fs.DirEntry, err error) error {
+		if nil != err || nil == d {
+			return nil
+		}
+
+		if d.IsDir() {
+			if strings.HasPrefix(d.Name(), ".") {
 				return filepath.SkipDir
 			}
 			return nil
 		}
 
-		if !strings.HasSuffix(info.Name(), ".sy") {
+		if !strings.HasSuffix(d.Name(), ".sy") {
 			return nil
 		}
 
@@ -153,13 +157,13 @@ func pagedPaths(localPath string, pageSize int) (ret map[int][]string) {
 
 func loadTree(localPath string, luteEngine *lute.Lute) (ret *parse.Tree, err error) {
 	data, err := filelock.ReadFile(localPath)
-	if nil != err {
+	if err != nil {
 		logging.LogErrorf("get data [path=%s] failed: %s", localPath, err)
 		return
 	}
 
 	ret, err = filesys.ParseJSONWithoutFix(data, luteEngine.ParseOptions)
-	if nil != err {
+	if err != nil {
 		logging.LogErrorf("parse json to tree [%s] failed: %s", localPath, err)
 		return
 	}
@@ -177,6 +181,7 @@ func LoadTreeByBlockIDWithReindex(id string) (ret *parse.Tree, err error) {
 	// 仅提供给 getBlockInfo 接口使用
 
 	if "" == id {
+		logging.LogWarnf("block id is empty")
 		return nil, ErrTreeNotFound
 	}
 
@@ -191,6 +196,9 @@ func LoadTreeByBlockIDWithReindex(id string) (ret *parse.Tree, err error) {
 		searchTreeInFilesystem(id)
 		bt = treenode.GetBlockTree(id)
 		if nil == bt {
+			if "dev" == util.Mode {
+				logging.LogWarnf("block tree not found [id=%s], stack: [%s]", id, logging.ShortStack())
+			}
 			return nil, ErrTreeNotFound
 		}
 	}
@@ -201,7 +209,8 @@ func LoadTreeByBlockIDWithReindex(id string) (ret *parse.Tree, err error) {
 }
 
 func LoadTreeByBlockID(id string) (ret *parse.Tree, err error) {
-	if "" == id {
+	if !ast.IsNodeIDPattern(id) {
+		logging.LogErrorf("block id is invalid [id=%s]", id)
 		return nil, ErrTreeNotFound
 	}
 
@@ -210,6 +219,13 @@ func LoadTreeByBlockID(id string) (ret *parse.Tree, err error) {
 		if task.ContainIndexTask() {
 			err = ErrIndexing
 			return
+		}
+
+		stack := logging.ShortStack()
+		if !strings.Contains(stack, "BuildBlockBreadcrumb") {
+			if "dev" == util.Mode {
+				logging.LogWarnf("block tree not found [id=%s], stack: [%s]", id, stack)
+			}
 		}
 		return nil, ErrTreeNotFound
 	}
@@ -236,15 +252,15 @@ func searchTreeInFilesystem(rootID string) {
 
 	logging.LogWarnf("searching tree on filesystem [rootID=%s]", rootID)
 	var treePath string
-	filepath.Walk(util.DataDir, func(path string, info fs.FileInfo, err error) error {
-		if info.IsDir() {
-			if strings.HasPrefix(info.Name(), ".") {
+	filelock.Walk(util.DataDir, func(path string, d fs.DirEntry, err error) error {
+		if d.IsDir() {
+			if strings.HasPrefix(d.Name(), ".") {
 				return filepath.SkipDir
 			}
 			return nil
 		}
 
-		if !strings.HasSuffix(info.Name(), ".sy") {
+		if !strings.HasSuffix(d.Name(), ".sy") {
 			return nil
 		}
 
@@ -276,7 +292,7 @@ func searchTreeInFilesystem(rootID string) {
 	}
 
 	tree, err := filesys.LoadTree(boxID, treePath, util.NewLute())
-	if nil != err {
+	if err != nil {
 		logging.LogErrorf("load tree [%s] failed: %s", treePath, err)
 		return
 	}

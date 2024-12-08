@@ -18,20 +18,18 @@ package search
 
 import (
 	"fmt"
-	"github.com/88250/gulu"
 	"regexp"
 	"strings"
 	"unicode/utf8"
 
+	"github.com/88250/gulu"
 	"github.com/88250/lute/lex"
-	"github.com/siyuan-note/siyuan/kernel/util"
 )
 
 func MarkText(text string, keyword string, beforeLen int, caseSensitive bool) (pos int, marked string) {
 	if "" == keyword {
-		return -1, util.EscapeHTML(text)
+		return -1, text
 	}
-	text = util.EscapeHTML(text)
 	keywords := SplitKeyword(keyword)
 	marked = EncloseHighlighting(text, keywords, "<mark>", "</mark>", caseSensitive, false)
 
@@ -113,7 +111,7 @@ func EncloseHighlighting(text string, keywords []string, openMark, closeMark str
 	re += ")"
 	ret = text
 
-	if reg, err := regexp.Compile(re); nil == err {
+	if reg, err := regexp.Compile(re); err == nil {
 		ret = reg.ReplaceAllStringFunc(text, func(s string) string { return openMark + s + closeMark })
 	}
 

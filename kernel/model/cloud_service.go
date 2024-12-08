@@ -32,6 +32,7 @@ import (
 	"github.com/siyuan-note/httpclient"
 	"github.com/siyuan-note/logging"
 	"github.com/siyuan-note/siyuan/kernel/conf"
+	"github.com/siyuan-note/siyuan/kernel/task"
 	"github.com/siyuan-note/siyuan/kernel/util"
 )
 
@@ -63,7 +64,7 @@ func CloudChatGPT(msg string, contextMsgs []string) (ret string, stop bool, err 
 		SetCookies(&http.Cookie{Name: "symphony", Value: Conf.GetUser().UserToken}).
 		SetBody(payload).
 		Post(util.GetCloudServer() + "/apis/siyuan/ai/chatGPT")
-	if nil != err {
+	if err != nil {
 		logging.LogErrorf("chat gpt failed: %s", err)
 		err = ErrFailedToConnectCloudServer
 		return
@@ -108,7 +109,7 @@ func StartFreeTrial() (err error) {
 		SetSuccessResult(requestResult).
 		SetCookies(&http.Cookie{Name: "symphony", Value: Conf.GetUser().UserToken}).
 		Post(util.GetCloudServer() + "/apis/siyuan/user/startFreeTrial")
-	if nil != err {
+	if err != nil {
 		logging.LogErrorf("start free trial failed: %s", err)
 		return ErrFailedToConnectCloudServer
 	}
@@ -129,7 +130,7 @@ func DeactivateUser() (err error) {
 		SetSuccessResult(requestResult).
 		SetCookies(&http.Cookie{Name: "symphony", Value: Conf.GetUser().UserToken}).
 		Post(util.GetCloudServer() + "/apis/siyuan/user/deactivate")
-	if nil != err {
+	if err != nil {
 		logging.LogErrorf("deactivate user failed: %s", err)
 		return ErrFailedToConnectCloudServer
 	}
@@ -155,7 +156,7 @@ func SetCloudBlockReminder(id, data string, timed int64) (err error) {
 		SetBody(payload).
 		SetCookies(&http.Cookie{Name: "symphony", Value: Conf.GetUser().UserToken}).
 		Post(util.GetCloudServer() + "/apis/siyuan/calendar/setBlockReminder")
-	if nil != err {
+	if err != nil {
 		logging.LogErrorf("set block reminder failed: %s", err)
 		return ErrFailedToConnectCloudServer
 	}
@@ -187,7 +188,7 @@ func LoadUploadToken() (err error) {
 		SetSuccessResult(requestResult).
 		SetCookies(&http.Cookie{Name: "symphony", Value: Conf.GetUser().UserToken}).
 		Post(util.GetCloudServer() + "/apis/siyuan/upload/token")
-	if nil != err {
+	if err != nil {
 		logging.LogErrorf("get upload token failed: %s", err)
 		return ErrFailedToConnectCloudServer
 	}
@@ -237,8 +238,7 @@ func refreshSubscriptionExpirationRemind() {
 		now := time.Now().UnixMilli()
 		if now >= expired { // 已经过期
 			if now-expired <= 1000*60*60*24*2 { // 2 天内提醒 https://github.com/siyuan-note/siyuan/issues/7816
-				time.Sleep(time.Second * 30)
-				util.PushErrMsg(Conf.Language(128), 0)
+				task.AppendAsyncTaskWithDelay(task.PushMsg, 30*time.Second, util.PushErrMsg, Conf.Language(128), 0)
 			}
 			return
 		}
@@ -249,9 +249,7 @@ func refreshSubscriptionExpirationRemind() {
 		}
 
 		if 0 < remains && expireDay > remains {
-			util.WaitForUILoaded()
-			time.Sleep(time.Second * 7)
-			util.PushErrMsg(fmt.Sprintf(Conf.Language(127), remains), 0)
+			task.AppendAsyncTaskWithDelay(task.PushMsg, 7*time.Second, util.PushErrMsg, fmt.Sprintf(Conf.Language(127), remains), 0)
 			return
 		}
 	}
@@ -287,11 +285,11 @@ func refreshAnnouncement() {
 	var existingAnnouncements, newAnnouncements []*Announcement
 	if gulu.File.IsExist(announcementConf) {
 		data, err := os.ReadFile(announcementConf)
-		if nil != err {
+		if err != nil {
 			logging.LogErrorf("read announcement conf failed: %s", err)
 			return
 		}
-		if err = gulu.JSON.UnmarshalJSON(data, &existingAnnouncements); nil != err {
+		if err = gulu.JSON.UnmarshalJSON(data, &existingAnnouncements); err != nil {
 			logging.LogErrorf("unmarshal announcement conf failed: %s", err)
 			os.Remove(announcementConf)
 			return
@@ -315,11 +313,11 @@ func refreshAnnouncement() {
 	}
 
 	data, err := gulu.JSON.MarshalJSON(existingAnnouncements)
-	if nil != err {
+	if err != nil {
 		logging.LogErrorf("marshal announcement conf failed: %s", err)
 		return
 	}
-	if err = os.WriteFile(announcementConf, data, 0644); nil != err {
+	if err = os.WriteFile(announcementConf, data, 0644); err != nil {
 		logging.LogErrorf("write announcement conf failed: %s", err)
 		return
 	}
@@ -331,7 +329,7 @@ func refreshAnnouncement() {
 
 func RefreshUser(token string) {
 	threeDaysAfter := util.CurrentTimeMillis() + 1000*60*60*24*3
-    Conf.SetUser(loadUserFromConf())
+	Conf.SetUser(loadUserFromConf())
 	if "" == token {
 		if "" != Conf.UserData {
 			Conf.SetUser(loadUserFromConf())
@@ -342,7 +340,7 @@ func RefreshUser(token string) {
 
 		var tokenExpireTime int64
 		tokenExpireTime, err := strconv.ParseInt(Conf.GetUser().UserTokenExpireTime+"000", 10, 64)
-		if nil != err {
+		if err != nil {
 			logging.LogErrorf("convert token expire time [%s] failed: %s", Conf.GetUser().UserTokenExpireTime, err)
 			util.PushErrMsg(Conf.Language(19), 5000)
 			return
@@ -366,7 +364,7 @@ Net:
 
 		var tokenExpireTime int64
 		tokenExpireTime, err = strconv.ParseInt(Conf.GetUser().UserTokenExpireTime+"000", 10, 64)
-		if nil != err {
+		if err != nil {
 			logging.LogErrorf("convert token expire time [%s] failed: %s", Conf.GetUser().UserTokenExpireTime, err)
 			util.PushErrMsg(Conf.Language(19), 5000)
 			return
@@ -391,13 +389,13 @@ Net:
 }
 
 func loadUserFromConf() *conf.User {
-    userStr := `{"userId":"1719061610011","userName":"neo","userAvatarURL":"https://assets.b3logfile.com/avatar/1719061610038.png?imageView2/1/w/256/h/256/interlace/0/q/100","userHomeBImgURL":"","userIntro":"","userNickname":"","userCreateTime":"20240622 21:06:50","userSiYuanProExpireTime":-1,"userToken":"b1d0d1ad98acdd5d7d846d4359048a923f932962125e7ad0c9db814d5942879467b648f693d6a11336bcaa8b1bee42090ae1061a025b6f16d8afdc6baac0c1129f62ce384f54ec3360273c1f53642adebbfd8d37a5170806c144c59ee5044cc88dd6e440a06e8853cfdf59e8a45800ec8b5e8bd41105485f1487839127608f94ed7fe815944a37852dd7a501050b20406a145b7f233259ca64051fb209eb0c988e2c8d1cef2fa81ae3991e267f9b3a8ae73983e05a43575e4431f814449b3e2b990f0182ec8d7fad6e834efa68396f913fc52221695f3125e772d5f907eb382e1da1b902feab17c7d10bf64ecd567f81","userTokenExpireTime":"7275693060","userSiYuanRepoSize":0,"userSiYuanPointExchangeRepoSize":0,"userSiYuanAssetSize":0,"userTrafficUpload":0,"userTrafficDownload":0,"userTrafficAPIGet":0,"userTrafficAPIPut":0,"userTrafficTime":0,"userSiYuanSubscriptionPlan":0,"userSiYuanSubscriptionStatus":0,"userSiYuanSubscriptionType":1,"userSiYuanOneTimePayStatus":1}`
-    user := &conf.User{}
-    gulu.JSON.UnmarshalJSON([]byte(userStr), &user)
+	userStr := `{"userId":"1719061610011","userName":"neo","userAvatarURL":"https://assets.b3logfile.com/avatar/1719061610038.png?imageView2/1/w/256/h/256/interlace/0/q/100","userHomeBImgURL":"","userIntro":"","userNickname":"","userCreateTime":"20240622 21:06:50","userSiYuanProExpireTime":-1,"userToken":"b1d0d1ad98acdd5d7d846d4359048a923f932962125e7ad0c9db814d5942879467b648f693d6a11336bcaa8b1bee42090ae1061a025b6f16d8afdc6baac0c1129f62ce384f54ec3360273c1f53642adebbfd8d37a5170806c144c59ee5044cc88dd6e440a06e8853cfdf59e8a45800ec8b5e8bd41105485f1487839127608f94ed7fe815944a37852dd7a501050b20406a145b7f233259ca64051fb209eb0c988e2c8d1cef2fa81ae3991e267f9b3a8ae73983e05a43575e4431f814449b3e2b990f0182ec8d7fad6e834efa68396f913fc52221695f3125e772d5f907eb382e1da1b902feab17c7d10bf64ecd567f81","userTokenExpireTime":"7275693060","userSiYuanRepoSize":0,"userSiYuanPointExchangeRepoSize":0,"userSiYuanAssetSize":0,"userTrafficUpload":0,"userTrafficDownload":0,"userTrafficAPIGet":0,"userTrafficAPIPut":0,"userTrafficTime":0,"userSiYuanSubscriptionPlan":0,"userSiYuanSubscriptionStatus":0,"userSiYuanSubscriptionType":1,"userSiYuanOneTimePayStatus":1}`
+	user := &conf.User{}
+	gulu.JSON.UnmarshalJSON([]byte(userStr), &user)
 
-    fmt.Print("inject user success")
-    return user
-    // return user1
+	fmt.Print("inject user success")
+	return user
+	// return user1
 	// if "" == Conf.UserData {
 	// 	return nil
 	// }
@@ -422,7 +420,7 @@ func RemoveCloudShorthands(ids []string) (err error) {
 		SetCookies(&http.Cookie{Name: "symphony", Value: Conf.GetUser().UserToken}).
 		SetBody(body).
 		Post(util.GetCloudServer() + "/apis/siyuan/inbox/removeCloudShorthands")
-	if nil != err {
+	if err != nil {
 		logging.LogErrorf("remove cloud shorthands failed: %s", err)
 		err = ErrFailedToConnectCloudServer
 		return
@@ -449,7 +447,7 @@ func GetCloudShorthand(id string) (ret map[string]interface{}, err error) {
 		SetSuccessResult(&result).
 		SetCookies(&http.Cookie{Name: "symphony", Value: Conf.GetUser().UserToken}).
 		Post(util.GetCloudServer() + "/apis/siyuan/inbox/getCloudShorthand?id=" + id)
-	if nil != err {
+	if err != nil {
 		logging.LogErrorf("get cloud shorthand failed: %s", err)
 		err = ErrFailedToConnectCloudServer
 		return
@@ -489,7 +487,7 @@ func GetCloudShorthands(page int) (result map[string]interface{}, err error) {
 		SetSuccessResult(&result).
 		SetCookies(&http.Cookie{Name: "symphony", Value: Conf.GetUser().UserToken}).
 		Post(util.GetCloudServer() + "/apis/siyuan/inbox/getCloudShorthands?p=" + strconv.Itoa(page))
-	if nil != err {
+	if err != nil {
 		logging.LogErrorf("get cloud shorthands failed: %s", err)
 		err = ErrFailedToConnectCloudServer
 		return
@@ -545,7 +543,7 @@ func getUser(token string) (*conf.User, error) {
 		SetSuccessResult(&result).
 		SetBody(map[string]string{"token": token}).
 		Post(util.GetCloudServer() + "/apis/siyuan/user")
-	if nil != err {
+	if err != nil {
 		logging.LogErrorf("get community user failed: %s", err)
 		return nil, errors.New(Conf.Language(18))
 	}
@@ -566,7 +564,7 @@ func getUser(token string) (*conf.User, error) {
 	dataStr := result["data"].(string)
 	data := util.AESDecrypt(dataStr)
 	user := &conf.User{}
-	if err = gulu.JSON.UnmarshalJSON(data, &user); nil != err {
+	if err = gulu.JSON.UnmarshalJSON(data, &user); err != nil {
 		logging.LogErrorf("get community user failed: %s", err)
 		return nil, errors.New(Conf.Language(18))
 	}
@@ -575,7 +573,7 @@ func getUser(token string) (*conf.User, error) {
 
 func UseActivationcode(code string) (err error) {
 	code = strings.TrimSpace(code)
-	code = gulu.Str.RemoveInvisible(code)
+	code = util.RemoveInvalid(code)
 	requestResult := gulu.Ret.NewResult()
 	request := httpclient.NewCloudRequest30s()
 	resp, err := request.
@@ -583,7 +581,7 @@ func UseActivationcode(code string) (err error) {
 		SetBody(map[string]string{"data": code}).
 		SetCookies(&http.Cookie{Name: "symphony", Value: Conf.GetUser().UserToken}).
 		Post(util.GetCloudServer() + "/apis/siyuan/useActivationcode")
-	if nil != err {
+	if err != nil {
 		logging.LogErrorf("check activation code failed: %s", err)
 		return ErrFailedToConnectCloudServer
 	}
@@ -599,7 +597,7 @@ func UseActivationcode(code string) (err error) {
 
 func CheckActivationcode(code string) (retCode int, msg string) {
 	code = strings.TrimSpace(code)
-	code = gulu.Str.RemoveInvisible(code)
+	code = util.RemoveInvalid(code)
 	retCode = 1
 	requestResult := gulu.Ret.NewResult()
 	request := httpclient.NewCloudRequest30s()
@@ -608,7 +606,7 @@ func CheckActivationcode(code string) (retCode int, msg string) {
 		SetBody(map[string]string{"data": code}).
 		SetCookies(&http.Cookie{Name: "symphony", Value: Conf.GetUser().UserToken}).
 		Post(util.GetCloudServer() + "/apis/siyuan/checkActivationcode")
-	if nil != err {
+	if err != nil {
 		logging.LogErrorf("check activation code failed: %s", err)
 		msg = ErrFailedToConnectCloudServer.Error()
 		return
@@ -636,7 +634,7 @@ func Login(userName, password, captcha string, cloudRegion int) (ret *gulu.Resul
 		SetSuccessResult(&result).
 		SetBody(map[string]string{"userName": userName, "userPassword": password, "captcha": captcha}).
 		Post(util.GetCloudServer() + "/apis/siyuan/login")
-	if nil != err {
+	if err != nil {
 		logging.LogErrorf("login failed: %s", err)
 		ret = gulu.Ret.NewResult()
 		ret.Code = -1
@@ -674,7 +672,7 @@ func Login2fa(token, code string) (map[string]interface{}, error) {
 		SetBody(map[string]string{"twofactorAuthCode": code}).
 		SetHeader("token", token).
 		Post(util.GetCloudServer() + "/apis/siyuan/login/2fa")
-	if nil != err {
+	if err != nil {
 		logging.LogErrorf("login 2fa failed: %s", err)
 		return nil, errors.New(Conf.Language(18))
 	}

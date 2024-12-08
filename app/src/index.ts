@@ -18,6 +18,8 @@ import {
     progressLoading,
     progressStatus,
     reloadSync,
+    setDefRefCount,
+    setRefDynamicText,
     setTitle,
     transactionError
 } from "./dialog/processSystem";
@@ -28,6 +30,7 @@ import {getSearch} from "./util/functions";
 import {hideAllElements} from "./protyle/ui/hideElements";
 import {loadPlugins, reloadPlugin} from "./plugin/loader";
 import "./assets/scss/base.scss";
+import {reloadEmoji} from "./emoji";
 
 export class App {
     public plugins: import("./plugin").Plugin[] = [];
@@ -60,19 +63,23 @@ export class App {
                     });
                     if (data) {
                         switch (data.cmd) {
+                            case "setDefRefCount":
+                                setDefRefCount(data.data);
+                                break;
+                            case "setRefDynamicText":
+                                setRefDynamicText(data.data);
+                                break;
                             case "reloadPlugin":
                                 reloadPlugin(this, data.data);
                                 break;
                             case "reloadEmojiConf":
-                                fetchPost("/api/system/getEmojiConf", {}, response => {
-                                    window.siyuan.emojis = response.data as IEmoji[];
-                                });
+                                reloadEmoji();
                                 break;
                             case "syncMergeResult":
                                 reloadSync(this, data.data);
                                 break;
                             case "reloaddoc":
-                                reloadSync(this, {upsertRootIDs: [data.data], removeRootIDs: []}, false, false);
+                                reloadSync(this, {upsertRootIDs: [data.data], removeRootIDs: []}, false, false, true);
                                 break;
                             case "readonly":
                                 window.siyuan.config.editor.readOnly = data.data;
@@ -161,6 +168,7 @@ export class App {
             addScriptSync(`${Constants.PROTYLE_CDN}/js/lute/lute.min.js?v=${Constants.SIYUAN_VERSION}`, "protyleLuteScript");
             addScript(`${Constants.PROTYLE_CDN}/js/protyle-html.js?v=${Constants.SIYUAN_VERSION}`, "protyleWcHtmlScript");
             window.siyuan.config = response.data.conf;
+            window.siyuan.isPublish = response.data.isPublish;
             await loadPlugins(this);
             getLocalStorage(() => {
                 fetchGet(`/appearance/langs/${window.siyuan.config.appearance.lang}.json?v=${Constants.SIYUAN_VERSION}`, (lauguages: IObject) => {

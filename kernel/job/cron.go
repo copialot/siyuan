@@ -28,6 +28,7 @@ import (
 
 func StartCron() {
 	go every(100*time.Millisecond, task.ExecTaskJob)
+	go every(100*time.Millisecond, task.ExecAsyncTaskJob)
 	go every(5*time.Second, task.StatusJob)
 	go every(5*time.Second, model.SyncDataJob)
 	go every(2*time.Hour, model.StatJob)
@@ -41,6 +42,7 @@ func StartCron() {
 	go every(30*time.Second, model.OCRAssetsJob)
 	go every(30*time.Second, model.FlushAssetsTextsJob)
 	go every(30*time.Second, model.HookDesktopUIProcJob)
+	go every(24*time.Hour, model.AutoPurgeRepoJob)
 }
 
 func every(interval time.Duration, f func()) {

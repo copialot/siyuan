@@ -21,7 +21,6 @@ import (
 	"net"
 	"net/http"
 	"net/http/httputil"
-	"strconv"
 
 	"github.com/siyuan-note/logging"
 	"github.com/siyuan-note/siyuan/kernel/model"
@@ -90,7 +89,7 @@ func initPublishListener() (err error) {
 	}
 
 	_, Port, err = net.SplitHostPort(listener.Addr().String())
-	if nil != err {
+	if err != nil {
 		logging.LogErrorf("split host and port failed: %s", err)
 		return
 	}
@@ -110,7 +109,7 @@ func closePublishListener() (err error) {
 func startPublishReverseProxyService() {
 	logging.LogInfof("publish service [%s:%s] is running", Host, Port)
 	// 服务进行时一直阻塞
-	if err := http.Serve(listener, proxy); nil != err {
+	if err := http.Serve(listener, proxy); err != nil {
 		if listener != nil {
 			logging.LogErrorf("boot publish service failed: %s", err)
 		}
@@ -143,7 +142,7 @@ func (PublishServiceTransport) RoundTrip(request *http.Request) (response *http.
 				ProtoMinor: request.ProtoMinor,
 				Request:    request,
 				Header: http.Header{
-					"WWW-Authenticate": {"Basic realm=" + strconv.Quote("Authorization Required")},
+					model.BasicAuthHeaderKey: {model.BasicAuthHeaderValue},
 				},
 				Close:         false,
 				ContentLength: -1,

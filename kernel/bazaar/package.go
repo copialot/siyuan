@@ -42,23 +42,47 @@ import (
 
 type DisplayName struct {
 	Default string `json:"default"`
-	ZhCN    string `json:"zh_CN"`
+	DeDE    string `json:"de_DE"`
 	EnUS    string `json:"en_US"`
+	EsES    string `json:"es_ES"`
+	FrFR    string `json:"fr_FR"`
+	HeIL    string `json:"he_IL"`
+	ItIT    string `json:"it_IT"`
+	JaJP    string `json:"ja_JP"`
+	PlPL    string `json:"pl_PL"`
+	RuRU    string `json:"ru_RU"`
 	ZhCHT   string `json:"zh_CHT"`
+	ZhCN    string `json:"zh_CN"`
 }
 
 type Description struct {
 	Default string `json:"default"`
-	ZhCN    string `json:"zh_CN"`
+	DeDE    string `json:"de_DE"`
 	EnUS    string `json:"en_US"`
+	EsES    string `json:"es_ES"`
+	FrFR    string `json:"fr_FR"`
+	HeIL    string `json:"he_IL"`
+	ItIT    string `json:"it_IT"`
+	JaJP    string `json:"ja_JP"`
+	PlPL    string `json:"pl_PL"`
+	RuRU    string `json:"ru_RU"`
 	ZhCHT   string `json:"zh_CHT"`
+	ZhCN    string `json:"zh_CN"`
 }
 
 type Readme struct {
 	Default string `json:"default"`
-	ZhCN    string `json:"zh_CN"`
+	DeDE    string `json:"de_DE"`
 	EnUS    string `json:"en_US"`
+	EsES    string `json:"es_ES"`
+	FrFR    string `json:"fr_FR"`
+	HeIL    string `json:"he_IL"`
+	ItIT    string `json:"it_IT"`
+	JaJP    string `json:"ja_JP"`
+	PlPL    string `json:"pl_PL"`
+	RuRU    string `json:"ru_RU"`
 	ZhCHT   string `json:"zh_CHT"`
+	ZhCN    string `json:"zh_CN"`
 }
 
 type Funding struct {
@@ -142,24 +166,57 @@ func getPreferredReadme(readme *Readme) string {
 
 	ret := readme.Default
 	switch util.Lang {
-	case "zh_CN":
-		if "" != readme.ZhCN {
-			ret = readme.ZhCN
-		}
-	case "zh_CHT":
-		if "" != readme.ZhCHT {
-			ret = readme.ZhCHT
-		} else if "" != readme.ZhCN {
-			ret = readme.ZhCN
+	case "de_DE":
+		if "" != readme.DeDE {
+			ret = readme.DeDE
 		}
 	case "en_US":
 		if "" != readme.EnUS {
 			ret = readme.EnUS
 		}
+	case "es_ES":
+		if "" != readme.EsES {
+			ret = readme.EsES
+		}
+	case "fr_FR":
+		if "" != readme.FrFR {
+			ret = readme.FrFR
+		}
+	case "he_IL":
+		if "" != readme.HeIL {
+			ret = readme.HeIL
+		}
+	case "it_IT":
+		if "" != readme.ItIT {
+			ret = readme.ItIT
+		}
+	case "ja_JP":
+		if "" != readme.JaJP {
+			ret = readme.JaJP
+		}
+	case "pl_PL":
+		if "" != readme.PlPL {
+			ret = readme.PlPL
+		}
+	case "ru_RU":
+		if "" != readme.RuRU {
+			ret = readme.RuRU
+		}
+	case "zh_CHT":
+		if "" != readme.ZhCHT {
+			ret = readme.ZhCHT
+		}
+	case "zh_CN":
+		if "" != readme.ZhCN {
+			ret = readme.ZhCN
+		}
 	default:
 		if "" != readme.EnUS {
 			ret = readme.EnUS
 		}
+	}
+	if "" == ret {
+		ret = "README.md"
 	}
 	return ret
 }
@@ -171,24 +228,57 @@ func GetPreferredName(pkg *Package) string {
 
 	ret := pkg.DisplayName.Default
 	switch util.Lang {
-	case "zh_CN":
-		if "" != pkg.DisplayName.ZhCN {
-			ret = pkg.DisplayName.ZhCN
-		}
-	case "zh_CHT":
-		if "" != pkg.DisplayName.ZhCHT {
-			ret = pkg.DisplayName.ZhCHT
-		} else if "" != pkg.DisplayName.ZhCN {
-			ret = pkg.DisplayName.ZhCN
+	case "de_DE":
+		if "" != pkg.DisplayName.DeDE {
+			ret = pkg.DisplayName.DeDE
 		}
 	case "en_US":
 		if "" != pkg.DisplayName.EnUS {
 			ret = pkg.DisplayName.EnUS
 		}
+	case "es_ES":
+		if "" != pkg.DisplayName.EsES {
+			ret = pkg.DisplayName.EsES
+		}
+	case "fr_FR":
+		if "" != pkg.DisplayName.FrFR {
+			ret = pkg.DisplayName.FrFR
+		}
+	case "he_IL":
+		if "" != pkg.DisplayName.HeIL {
+			ret = pkg.DisplayName.HeIL
+		}
+	case "it_IT":
+		if "" != pkg.DisplayName.ItIT {
+			ret = pkg.DisplayName.ItIT
+		}
+	case "ja_JP":
+		if "" != pkg.DisplayName.JaJP {
+			ret = pkg.DisplayName.JaJP
+		}
+	case "pl_PL":
+		if "" != pkg.DisplayName.PlPL {
+			ret = pkg.DisplayName.PlPL
+		}
+	case "ru_RU":
+		if "" != pkg.DisplayName.RuRU {
+			ret = pkg.DisplayName.RuRU
+		}
+	case "zh_CHT":
+		if "" != pkg.DisplayName.ZhCHT {
+			ret = pkg.DisplayName.ZhCHT
+		}
+	case "zh_CN":
+		if "" != pkg.DisplayName.ZhCN {
+			ret = pkg.DisplayName.ZhCN
+		}
 	default:
 		if "" != pkg.DisplayName.EnUS {
 			ret = pkg.DisplayName.EnUS
 		}
+	}
+	if "" == ret {
+		ret = pkg.Name
 	}
 	return ret
 }
@@ -200,24 +290,57 @@ func getPreferredDesc(desc *Description) string {
 
 	ret := desc.Default
 	switch util.Lang {
-	case "zh_CN":
-		if "" != desc.ZhCN {
-			ret = desc.ZhCN
-		}
-	case "zh_CHT":
-		if "" != desc.ZhCHT {
-			ret = desc.ZhCHT
-		} else if "" != desc.ZhCN {
-			ret = desc.ZhCN
+	case "de_DE":
+		if "" != desc.DeDE {
+			ret = desc.DeDE
 		}
 	case "en_US":
 		if "" != desc.EnUS {
 			ret = desc.EnUS
 		}
+	case "es_ES":
+		if "" != desc.EsES {
+			ret = desc.EsES
+		}
+	case "fr_FR":
+		if "" != desc.FrFR {
+			ret = desc.FrFR
+		}
+	case "he_IL":
+		if "" != desc.HeIL {
+			ret = desc.HeIL
+		}
+	case "it_IT":
+		if "" != desc.ItIT {
+			ret = desc.ItIT
+		}
+	case "ja_JP":
+		if "" != desc.JaJP {
+			ret = desc.JaJP
+		}
+	case "pl_PL":
+		if "" != desc.PlPL {
+			ret = desc.PlPL
+		}
+	case "ru_RU":
+		if "" != desc.RuRU {
+			ret = desc.RuRU
+		}
+	case "zh_CHT":
+		if "" != desc.ZhCHT {
+			ret = desc.ZhCHT
+		}
+	case "zh_CN":
+		if "" != desc.ZhCN {
+			ret = desc.ZhCN
+		}
 	default:
 		if "" != desc.EnUS {
 			ret = desc.EnUS
 		}
+	}
+	if "" == ret {
+		ret = desc.EnUS
 	}
 	return ret
 }
@@ -249,11 +372,11 @@ func PluginJSON(pluginDirName string) (ret *Plugin, err error) {
 		return
 	}
 	data, err := filelock.ReadFile(p)
-	if nil != err {
+	if err != nil {
 		logging.LogErrorf("read plugin.json [%s] failed: %s", p, err)
 		return
 	}
-	if err = gulu.JSON.UnmarshalJSON(data, &ret); nil != err {
+	if err = gulu.JSON.UnmarshalJSON(data, &ret); err != nil {
 		logging.LogErrorf("parse plugin.json [%s] failed: %s", p, err)
 		return
 	}
@@ -269,11 +392,11 @@ func WidgetJSON(widgetDirName string) (ret *Widget, err error) {
 		return
 	}
 	data, err := filelock.ReadFile(p)
-	if nil != err {
+	if err != nil {
 		logging.LogErrorf("read widget.json [%s] failed: %s", p, err)
 		return
 	}
-	if err = gulu.JSON.UnmarshalJSON(data, &ret); nil != err {
+	if err = gulu.JSON.UnmarshalJSON(data, &ret); err != nil {
 		logging.LogErrorf("parse widget.json [%s] failed: %s", p, err)
 		return
 	}
@@ -289,11 +412,11 @@ func IconJSON(iconDirName string) (ret *Icon, err error) {
 		return
 	}
 	data, err := os.ReadFile(p)
-	if nil != err {
+	if err != nil {
 		logging.LogErrorf("read icon.json [%s] failed: %s", p, err)
 		return
 	}
-	if err = gulu.JSON.UnmarshalJSON(data, &ret); nil != err {
+	if err = gulu.JSON.UnmarshalJSON(data, &ret); err != nil {
 		logging.LogErrorf("parse icon.json [%s] failed: %s", p, err)
 		return
 	}
@@ -309,11 +432,11 @@ func TemplateJSON(templateDirName string) (ret *Template, err error) {
 		return
 	}
 	data, err := filelock.ReadFile(p)
-	if nil != err {
+	if err != nil {
 		logging.LogErrorf("read template.json [%s] failed: %s", p, err)
 		return
 	}
-	if err = gulu.JSON.UnmarshalJSON(data, &ret); nil != err {
+	if err = gulu.JSON.UnmarshalJSON(data, &ret); err != nil {
 		logging.LogErrorf("parse template.json [%s] failed: %s", p, err)
 		return
 	}
@@ -329,13 +452,13 @@ func ThemeJSON(themeDirName string) (ret *Theme, err error) {
 		return
 	}
 	data, err := os.ReadFile(p)
-	if nil != err {
+	if err != nil {
 		logging.LogErrorf("read theme.json [%s] failed: %s", p, err)
 		return
 	}
 
 	ret = &Theme{}
-	if err = gulu.JSON.UnmarshalJSON(data, &ret); nil != err {
+	if err = gulu.JSON.UnmarshalJSON(data, &ret); err != nil {
 		logging.LogErrorf("parse theme.json [%s] failed: %s", p, err)
 		return
 	}
@@ -350,7 +473,7 @@ var stageIndexLock = sync.Mutex{}
 
 func getStageIndex(pkgType string) (ret *StageIndex, err error) {
 	rhyRet, err := util.GetRhyResult(false)
-	if nil != err {
+	if err != nil {
 		return
 	}
 
@@ -482,6 +605,15 @@ func isOutdatedTemplate(template *Template, bazaarTemplates []*Template) bool {
 	return false
 }
 
+func isBazzarOnline() (ret bool) {
+	// Improve marketplace loading when offline https://github.com/siyuan-note/siyuan/issues/12050
+	ret = util.IsOnline(util.BazaarOSSServer, true, 3000)
+	if !ret {
+		util.PushErrMsg(util.Langs[util.Lang][24], 5000)
+	}
+	return
+}
+
 func GetPackageREADME(repoURL, repoHash, packageType string) (ret string) {
 	repoURLHash := repoURL + "@" + repoHash
 
@@ -505,14 +637,14 @@ func GetPackageREADME(repoURL, repoHash, packageType string) (ret string) {
 	readme := getPreferredReadme(repo.Package.Readme)
 
 	data, err := downloadPackage(repoURLHash+"/"+readme, false, "")
-	if nil != err {
+	if err != nil {
 		ret = fmt.Sprintf("Load bazaar package's README.md(%s) failed: %s", readme, err.Error())
 		if readme == repo.Package.Readme.Default || "" == strings.TrimSpace(repo.Package.Readme.Default) {
 			return
 		}
 		readme = repo.Package.Readme.Default
 		data, err = downloadPackage(repoURLHash+"/"+readme, false, "")
-		if nil != err {
+		if err != nil {
 			ret += fmt.Sprintf("<br>Load bazaar package's README.md(%s) failed: %s", readme, err.Error())
 			return
 		}
@@ -570,7 +702,7 @@ func downloadPackage(repoURLHash string, pushProgress bool, systemID string) (da
 			util.PushDownloadProgress(repoURL, progress)
 		}
 	}).Get(u)
-	if nil != err {
+	if err != nil {
 		logging.LogErrorf("get bazaar package [%s] failed: %s", u, err)
 		return nil, errors.New("get bazaar package failed, please check your network")
 	}
@@ -599,7 +731,7 @@ func incPackageDownloads(repoURLHash, systemID string) {
 }
 
 func uninstallPackage(installPath string) (err error) {
-	if err = os.RemoveAll(installPath); nil != err {
+	if err = os.RemoveAll(installPath); err != nil {
 		logging.LogErrorf("remove [%s] failed: %s", installPath, err)
 		return fmt.Errorf("remove community package [%s] failed", filepath.Base(installPath))
 	}
@@ -609,7 +741,7 @@ func uninstallPackage(installPath string) (err error) {
 
 func installPackage(data []byte, installPath, repoURLHash string) (err error) {
 	err = installPackage0(data, installPath)
-	if nil != err {
+	if err != nil {
 		return
 	}
 
@@ -619,23 +751,23 @@ func installPackage(data []byte, installPath, repoURLHash string) (err error) {
 
 func installPackage0(data []byte, installPath string) (err error) {
 	tmpPackage := filepath.Join(util.TempDir, "bazaar", "package")
-	if err = os.MkdirAll(tmpPackage, 0755); nil != err {
+	if err = os.MkdirAll(tmpPackage, 0755); err != nil {
 		return
 	}
 	name := gulu.Rand.String(7)
 	tmp := filepath.Join(tmpPackage, name+".zip")
-	if err = os.WriteFile(tmp, data, 0644); nil != err {
+	if err = os.WriteFile(tmp, data, 0644); err != nil {
 		return
 	}
 
 	unzipPath := filepath.Join(tmpPackage, name)
-	if err = gulu.Zip.Unzip(tmp, unzipPath); nil != err {
+	if err = gulu.Zip.Unzip(tmp, unzipPath); err != nil {
 		logging.LogErrorf("write file [%s] failed: %s", installPath, err)
 		return
 	}
 
 	dirs, err := os.ReadDir(unzipPath)
-	if nil != err {
+	if err != nil {
 		return
 	}
 
@@ -644,7 +776,7 @@ func installPackage0(data []byte, installPath string) (err error) {
 		srcPath = filepath.Join(unzipPath, dirs[0].Name())
 	}
 
-	if err = filelock.Copy(srcPath, installPath); nil != err {
+	if err = filelock.Copy(srcPath, installPath); err != nil {
 		return
 	}
 	return
@@ -712,5 +844,9 @@ func disallowDisplayBazaarPackage(pkg *Package) bool {
 }
 
 var packageCache = gcache.New(6*time.Hour, 30*time.Minute) // [repoURL]*Package
+
+func CleanBazaarPackageCache() {
+	packageCache.Flush()
+}
 
 var packageInstallSizeCache = gcache.New(48*time.Hour, 6*time.Hour) // [repoURL]*int64

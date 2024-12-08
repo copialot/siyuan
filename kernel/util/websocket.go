@@ -188,6 +188,7 @@ type BlockStatResult struct {
 	LinkCount  int `json:"linkCount"`
 	ImageCount int `json:"imageCount"`
 	RefCount   int `json:"refCount"`
+	BlockCount int `json:"blockCount"`
 }
 
 func ContextPushMsg(context map[string]interface{}, msg string) {
@@ -240,10 +241,6 @@ func PushClearProgress() {
 	BroadcastByType("main", "cprogress", 0, "", nil)
 }
 
-func PushReloadAttrView(avID string) {
-	BroadcastByType("protyle", "refreshAttributeView", 0, "", map[string]interface{}{"id": avID})
-}
-
 func PushReloadDoc(rootID string) {
 	BroadcastByType("main", "reloaddoc", 0, "", rootID)
 }
@@ -258,8 +255,20 @@ func PushSaveDoc(rootID, typ string, sources interface{}) {
 	PushEvent(evt)
 }
 
-func PushProtyleReload(rootID string) {
+func PushReloadDocInfo(docInfo map[string]any) {
+	BroadcastByType("filetree", "reloadDocInfo", 0, "", docInfo)
+}
+
+func PushReloadProtyle(rootID string) {
 	BroadcastByType("protyle", "reload", 0, "", rootID)
+}
+
+func PushSetRefDynamicText(rootID, blockID, defBlockID, refText string) {
+	BroadcastByType("main", "setRefDynamicText", 0, "", map[string]interface{}{"rootID": rootID, "blockID": blockID, "defBlockID": defBlockID, "refText": refText})
+}
+
+func PushSetDefRefCount(rootID, blockID string, refIDs []string, refCount, rootRefCount int) {
+	BroadcastByType("main", "setDefRefCount", 0, "", map[string]interface{}{"rootID": rootID, "blockID": blockID, "refCount": refCount, "rootRefCount": rootRefCount, "refIDs": refIDs})
 }
 
 func PushProtyleLoading(rootID, msg string) {

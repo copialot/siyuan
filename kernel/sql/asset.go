@@ -21,9 +21,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/siyuan-note/filelock"
-
 	"github.com/88250/lute/ast"
+	"github.com/siyuan-note/filelock"
 	"github.com/siyuan-note/logging"
 	"github.com/siyuan-note/siyuan/kernel/treenode"
 	"github.com/siyuan-note/siyuan/kernel/util"
@@ -45,14 +44,15 @@ func docTagSpans(n *ast.Node) (ret []*Span) {
 	if tagsVal := n.IALAttr("tags"); "" != tagsVal {
 		tags := strings.Split(tagsVal, ",")
 		for _, tag := range tags {
-			markdown := "#" + tag + "#"
+			escaped := util.EscapeHTML(tag)
+			markdown := "#" + escaped + "#"
 			span := &Span{
 				ID:       ast.NewNodeID(),
 				BlockID:  n.ID,
 				RootID:   n.ID,
 				Box:      n.Box,
 				Path:     n.Path,
-				Content:  tag,
+				Content:  escaped,
 				Markdown: markdown,
 				Type:     "tag",
 				IAL:      "",
@@ -73,7 +73,7 @@ func docTitleImgAsset(root *ast.Node, boxLocalPath, docDirLocalPath string) *Ass
 		var err error
 		if lp := assetLocalPath(p, boxLocalPath, docDirLocalPath); "" != lp {
 			hash, err = util.GetEtag(lp)
-			if nil != err {
+			if err != nil {
 				logging.LogErrorf("calc asset [%s] hash failed: %s", lp, err)
 				return nil
 			}
@@ -106,7 +106,7 @@ func QueryAssetByHash(hash string) (ret *Asset) {
 	sqlStmt := "SELECT * FROM assets WHERE hash = ?"
 	row := queryRow(sqlStmt, hash)
 	var asset Asset
-	if err := row.Scan(&asset.ID, &asset.BlockID, &asset.RootID, &asset.Box, &asset.DocPath, &asset.Path, &asset.Name, &asset.Title, &asset.Hash); nil != err {
+	if err := row.Scan(&asset.ID, &asset.BlockID, &asset.RootID, &asset.Box, &asset.DocPath, &asset.Path, &asset.Name, &asset.Title, &asset.Hash); err != nil {
 		if sql.ErrNoRows != err {
 			logging.LogErrorf("query scan field failed: %s", err)
 		}
@@ -118,7 +118,7 @@ func QueryAssetByHash(hash string) (ret *Asset) {
 
 func scanAssetRows(rows *sql.Rows) (ret *Asset) {
 	var asset Asset
-	if err := rows.Scan(&asset.ID, &asset.BlockID, &asset.RootID, &asset.Box, &asset.DocPath, &asset.Path, &asset.Name, &asset.Title, &asset.Hash); nil != err {
+	if err := rows.Scan(&asset.ID, &asset.BlockID, &asset.RootID, &asset.Box, &asset.DocPath, &asset.Path, &asset.Name, &asset.Title, &asset.Hash); err != nil {
 		logging.LogErrorf("query scan field failed: %s", err)
 		return
 	}
